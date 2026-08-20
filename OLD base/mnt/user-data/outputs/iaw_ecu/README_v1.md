@@ -27,6 +27,7 @@ driver da WCH (**CH341SER**), então é normal que o instalador específico do
 CH340 falhe e o do CH341 funcione: na prática eles cobrem o mesmo hardware.
 
 Checklist rápido:
+
 1. Abra o **Gerenciador de Dispositivos** → **Portas (COM e LPT)**. Se
    aparecer algo como `USB-SERIAL CH340 (COMx)` sem ícone de erro, o driver
    já está funcional — o erro do instalador do CH340 pode ser ignorado.
@@ -39,7 +40,7 @@ Checklist rápido:
 
 ## 2. Sobre usar um projeto open-source pronto
 
-O **IAW Scan 2** (https://github.com/TzOk83/IES2, licença BSD-3-Clause) é o
+O **IAW Scan 2** (<https://github.com/TzOk83/IES2>, licença BSD-3-Clause) é o
 projeto mais maduro para essa família de ECU e usa exatamente o mesmo
 hardware que você tem (KKL/VAG-COM 409.1 + adaptador 3 pinos Fiat). Ele é
 escrito em **C# / .NET 2.0**, então não dá pra "importar" direto no seu
@@ -77,6 +78,7 @@ altera a velocidade da porta durante a comunicação.
 
 **Isso é um esqueleto, não uma solução testada.** Os valores exatos de
 timing e de comandos variam entre sub-famílias do IAW. Se o handshake falhar:
+
 - Confirme a pinagem: o cabo 3 pinos Fiat normalmente usa K-line, L-line,
   +12V e GND — o L-line às vezes precisa estar presente só na inicialização.
 - Tente rodar com o carro com o contato ligado (chave na posição II), não
@@ -90,6 +92,7 @@ timing e de comandos variam entre sub-famílias do IAW. Se o handshake falhar:
 Depois que o handshake funcionar no PC, portar é essencialmente trocar a
 `PORT` para `/dev/ttyUSB0` no Raspbian — o pyserial funciona igual em
 ARM. Daí dá pra:
+
 - Rodar o script como serviço (`systemd`) disparado na inicialização.
 - Expor os dados localmente via um servidor Flask leve na rede Wi-Fi do Pi.
 - Ou usar Bluetooth (PyBluez / BLE GATT) para mandar os dados pro celular.

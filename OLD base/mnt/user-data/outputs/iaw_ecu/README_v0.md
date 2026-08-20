@@ -46,6 +46,7 @@ código Python — mas vale muito a pena:
 
 **Isso é um esqueleto, não uma solução testada.** Os valores exatos de
 timing e de comandos variam entre sub-famílias do IAW. Se o handshake falhar:
+
 - Confirme a pinagem: o cabo 3 pinos Fiat normalmente usa K-line, L-line,
   +12V e GND — o L-line às vezes precisa estar presente só na inicialização.
 - Tente rodar com o carro com o contato ligado (chave na posição II), não
@@ -59,6 +60,7 @@ timing e de comandos variam entre sub-famílias do IAW. Se o handshake falhar:
 Depois que o handshake funcionar no PC, portar é essencialmente trocar a
 `PORT` para `/dev/ttyUSB0` no Raspbian — o pyserial funciona igual em
 ARM. Daí dá pra:
+
 - Rodar o script como serviço (`systemd`) disparado na inicialização.
 - Expor os dados localmente via um servidor Flask leve na rede Wi-Fi do Pi.
 - Ou usar Bluetooth (PyBluez / BLE GATT) para mandar os dados pro celular.
