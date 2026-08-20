@@ -1,0 +1,446 @@
+[19/08/2026 19:33:32] - Open port COM5 (C:\Program Files (x86)\Multiecuscan\Multiecuscan.exe) 
+ 
+[19/08/2026 19:33:32] Written data (COM5) 
+    00                                                .                
+[19/08/2026 19:33:32] Read data (COM5) 
+    00                                                .                
+[19/08/2026 19:33:32] - Close port COM5 
+ 
+[19/08/2026 19:33:36] - Open port COM5 (C:\Program Files (x86)\Multiecuscan\Multiecuscan.exe) 
+ 
+[19/08/2026 19:33:37] Read data (COM5) 
+    00 00                                             ..               
+[19/08/2026 19:33:39] Read data (COM5) 
+    55 b0 86 83 15 23                                 U°†ƒ.#           
+[19/08/2026 19:33:39] Written data (COM5) 
+    03                                                .                
+[19/08/2026 19:33:39] Read data (COM5) 
+    03                                                .                
+[19/08/2026 19:33:39] Written data (COM5) 
+    34                                                4                
+[19/08/2026 19:33:39] Read data (COM5) 
+    34                                                4                
+[19/08/2026 19:33:39] Written data (COM5) 
+    51                                                Q                
+[19/08/2026 19:33:39] Read data (COM5) 
+    51                                                Q                
+[19/08/2026 19:33:39] Written data (COM5) 
+    88                                                ˆ                
+[19/08/2026 19:33:39] Read data (COM5) 
+    88 03 34 51 88                                    ˆ.4Qˆ            
+[19/08/2026 19:33:39] Written data (COM5) 
+    04                                                .                
+[19/08/2026 19:33:39] Read data (COM5) 
+    04                                                .                
+[19/08/2026 19:33:39] Written data (COM5) 
+    00                                                .                
+[19/08/2026 19:33:39] Read data (COM5) 
+    00                                                .                
+[19/08/2026 19:33:39] Written data (COM5) 
+    00                                                .                
+[19/08/2026 19:33:39] Read data (COM5) 
+    00                                                .                
+[19/08/2026 19:33:39] Written data (COM5) 
+    00                                                .                
+[19/08/2026 19:33:39] Read data (COM5) 
+    00                                                .                
+[19/08/2026 19:33:39] Written data (COM5) 
+    04                                                .                
+[19/08/2026 19:33:39] Read data (COM5) 
+    04 05 0d 00 00 00 12                              .......          
+[19/08/2026 19:33:39] Written data (COM5) 
+    04                                                .                
+[19/08/2026 19:33:39] Read data (COM5) 
+    04                                                .                
+[19/08/2026 19:33:39] Written data (COM5) 
+    51                                                Q                
+[19/08/2026 19:33:39] Read data (COM5) 
+    51                                                Q                
+[19/08/2026 19:33:39] Written data (COM5) 
+    02                                                .                
+[19/08/2026 19:33:39] Read data (COM5) 
+    02                                                .                
+[19/08/2026 19:33:39] Written data (COM5) 
+    00                                                .                
+[19/08/2026 19:33:39] Read data (COM5) 
+    00                                                .                
+[19/08/2026 19:33:39] Written data (COM5) 
+    57                                                W                
+[19/08/2026 19:33:39] Read data (COM5) 
+    57 0f ae aa 55 cc 33 00 00 46 48 14 86 97 01 04   W.®ªUÌ3..FH.†—.. 
+    7b                                                {                
+[19/08/2026 19:33:39] Written data (COM5) 
+    03                                                .                
+[19/08/2026 19:33:39] Read data (COM5) 
+    03                                                .                
+[19/08/2026 19:33:39] Written data (COM5) 
+    09                                                .                
+[19/08/2026 19:33:39] Read data (COM5) 
+    09                                                .                
+[19/08/2026 19:33:39] Written data (COM5) 
+    00                                                .                
+[19/08/2026 19:33:39] Read data (COM5) 
+    00                                                .                
+[19/08/2026 19:33:39] Written data (COM5) 
+    0c                                                .                
+[19/08/2026 19:33:39] Read data (COM5) 
+    0c 05 ae 08 aa 01 65                              ..®.ª.e          
+[19/08/2026 19:33:39] Written data (COM5) 
+    03                                                .                
+[19/08/2026 19:33:39] Read data (COM5) 
+    03                                                .                
+[19/08/2026 19:33:39] Written data (COM5) 
+    09                                                .                
+[19/08/2026 19:33:39] Read data (COM5) 
+    09                                                .                
+[19/08/2026 19:33:39] Written data (COM5) 
+    00                                                .                
+[19/08/2026 19:33:39] Read data (COM5) 
+    00                                                .                
+[19/08/2026 19:33:39] Written data (COM5) 
+    0c                                                .                
+[19/08/2026 19:33:39] Read data (COM5) 
+    0c 03 09 00 0c                                    .....            
+[19/08/2026 19:33:39] Written data (COM5) 
+    04                                                .                
+[19/08/2026 19:33:39] Read data (COM5) 
+    04                                                .                
+[19/08/2026 19:33:39] Written data (COM5) 
+    51                                                Q                
+[19/08/2026 19:33:39] Read data (COM5) 
+    51                                                Q                
+[19/08/2026 19:33:39] Written data (COM5) 
+    02                                                .                
+[19/08/2026 19:33:39] Read data (COM5) 
+    02                                                .                
+[19/08/2026 19:33:39] Written data (COM5) 
+    00                                                .                
+[19/08/2026 19:33:39] Read data (COM5) 
+    00                                                .                
+[19/08/2026 19:33:39] Written data (COM5) 
+    57                                                W                
+[19/08/2026 19:33:39] Read data (COM5) 
+    57 0f ae aa 55 cc 33 00 00 46 48 14 86 97 01 04   W.®ªUÌ3..FH.†—.. 
+    7b                                                {                
+[19/08/2026 19:33:40] Written data (COM5) 
+    03                                                .                
+[19/08/2026 19:33:40] Read data (COM5) 
+    03                                                .                
+[19/08/2026 19:33:40] Written data (COM5) 
+    09                                                .                
+[19/08/2026 19:33:40] Read data (COM5) 
+    09                                                .                
+[19/08/2026 19:33:40] Written data (COM5) 
+    00                                                .                
+[19/08/2026 19:33:40] Read data (COM5) 
+    00                                                .                
+[19/08/2026 19:33:40] Written data (COM5) 
+    0c                                                .                
+[19/08/2026 19:33:40] Read data (COM5) 
+    0c 05 ae 08 aa 01 65                              ..®.ª.e          
+[19/08/2026 19:33:40] Written data (COM5) 
+    03                                                .                
+[19/08/2026 19:33:40] Read data (COM5) 
+    03                                                .                
+[19/08/2026 19:33:40] Written data (COM5) 
+    09                                                .                
+[19/08/2026 19:33:40] Read data (COM5) 
+    09                                                .                
+[19/08/2026 19:33:40] Written data (COM5) 
+    00                                                .                
+[19/08/2026 19:33:40] Read data (COM5) 
+    00                                                .                
+[19/08/2026 19:33:40] Written data (COM5) 
+    0c                                                .                
+[19/08/2026 19:33:40] Read data (COM5) 
+    0c 03 09 00 0c                                    .....            
+[19/08/2026 19:33:40] Written data (COM5) 
+    03                                                .                
+[19/08/2026 19:33:40] Read data (COM5) 
+    03                                                .                
+[19/08/2026 19:33:40] Written data (COM5) 
+    09                                                .                
+[19/08/2026 19:33:40] Read data (COM5) 
+    09                                                .                
+[19/08/2026 19:33:40] Written data (COM5) 
+    00                                                .                
+[19/08/2026 19:33:40] Read data (COM5) 
+    00                                                .                
+[19/08/2026 19:33:40] Written data (COM5) 
+    0c                                                .                
+[19/08/2026 19:33:40] Read data (COM5) 
+    0c 03 09 00 0c                                    .....            
+[19/08/2026 19:33:40] Written data (COM5) 
+    03                                                .                
+[19/08/2026 19:33:40] Read data (COM5) 
+    03                                                .                
+[19/08/2026 19:33:40] Written data (COM5) 
+    09                                                .                
+[19/08/2026 19:33:40] Read data (COM5) 
+    09                                                .                
+[19/08/2026 19:33:40] Written data (COM5) 
+    00                                                .                
+[19/08/2026 19:33:40] Read data (COM5) 
+    00                                                .                
+[19/08/2026 19:33:40] Written data (COM5) 
+    0c                                                .                
+[19/08/2026 19:33:40] Read data (COM5) 
+    0c 03 09 00 0c                                    .....            
+[19/08/2026 19:33:41] Written data (COM5) 
+    03                                                .                
+[19/08/2026 19:33:41] Read data (COM5) 
+    03                                                .                
+[19/08/2026 19:33:41] Written data (COM5) 
+    09                                                .                
+[19/08/2026 19:33:41] Read data (COM5) 
+    09                                                .                
+[19/08/2026 19:33:41] Written data (COM5) 
+    00                                                .                
+[19/08/2026 19:33:41] Read data (COM5) 
+    00                                                .                
+[19/08/2026 19:33:41] Written data (COM5) 
+    0c                                                .                
+[19/08/2026 19:33:41] Read data (COM5) 
+    0c 03 09 00 0c                                    .....            
+[19/08/2026 19:33:41] Written data (COM5) 
+    03                                                .                
+[19/08/2026 19:33:41] Read data (COM5) 
+    03                                                .                
+[19/08/2026 19:33:41] Written data (COM5) 
+    09                                                .                
+[19/08/2026 19:33:41] Read data (COM5) 
+    09                                                .                
+[19/08/2026 19:33:41] Written data (COM5) 
+    00                                                .                
+[19/08/2026 19:33:41] Read data (COM5) 
+    00                                                .                
+[19/08/2026 19:33:41] Written data (COM5) 
+    0c                                                .                
+[19/08/2026 19:33:41] Read data (COM5) 
+    0c 03 09 00 0c                                    .....            
+[19/08/2026 19:33:41] Written data (COM5) 
+    03                                                .                
+[19/08/2026 19:33:41] Read data (COM5) 
+    03                                                .                
+[19/08/2026 19:33:41] Written data (COM5) 
+    09                                                .                
+[19/08/2026 19:33:41] Read data (COM5) 
+    09                                                .                
+[19/08/2026 19:33:41] Written data (COM5) 
+    00                                                .                
+[19/08/2026 19:33:41] Read data (COM5) 
+    00                                                .                
+[19/08/2026 19:33:41] Written data (COM5) 
+    0c                                                .                
+[19/08/2026 19:33:41] Read data (COM5) 
+    0c 03 09 00 0c                                    .....            
+[19/08/2026 19:33:42] Written data (COM5) 
+    03                                                .                
+[19/08/2026 19:33:42] Read data (COM5) 
+    03                                                .                
+[19/08/2026 19:33:42] Written data (COM5) 
+    09                                                .                
+[19/08/2026 19:33:42] Read data (COM5) 
+    09                                                .                
+[19/08/2026 19:33:42] Written data (COM5) 
+    00                                                .                
+[19/08/2026 19:33:42] Read data (COM5) 
+    00                                                .                
+[19/08/2026 19:33:42] Written data (COM5) 
+    0c                                                .                
+[19/08/2026 19:33:42] Read data (COM5) 
+    0c 03 09 00 0c                                    .....            
+[19/08/2026 19:33:42] Written data (COM5) 
+    03                                                .                
+[19/08/2026 19:33:42] Read data (COM5) 
+    03                                                .                
+[19/08/2026 19:33:42] Written data (COM5) 
+    09                                                .                
+[19/08/2026 19:33:42] Read data (COM5) 
+    09                                                .                
+[19/08/2026 19:33:42] Written data (COM5) 
+    00                                                .                
+[19/08/2026 19:33:42] Read data (COM5) 
+    00                                                .                
+[19/08/2026 19:33:42] Written data (COM5) 
+    0c                                                .                
+[19/08/2026 19:33:42] Read data (COM5) 
+    0c 03 09 00 0c                                    .....            
+[19/08/2026 19:33:42] Written data (COM5) 
+    03                                                .                
+[19/08/2026 19:33:42] Read data (COM5) 
+    03                                                .                
+[19/08/2026 19:33:42] Written data (COM5) 
+    09                                                .                
+[19/08/2026 19:33:42] Read data (COM5) 
+    09                                                .                
+[19/08/2026 19:33:42] Written data (COM5) 
+    00                                                .                
+[19/08/2026 19:33:42] Read data (COM5) 
+    00                                                .                
+[19/08/2026 19:33:42] Written data (COM5) 
+    0c                                                .                
+[19/08/2026 19:33:42] Read data (COM5) 
+    0c 03 09 00 0c                                    .....            
+[19/08/2026 19:33:42] Written data (COM5) 
+    03                                                .                
+[19/08/2026 19:33:42] Read data (COM5) 
+    03                                                .                
+[19/08/2026 19:33:42] Written data (COM5) 
+    09                                                .                
+[19/08/2026 19:33:42] Read data (COM5) 
+    09                                                .                
+[19/08/2026 19:33:42] Written data (COM5) 
+    00                                                .                
+[19/08/2026 19:33:42] Read data (COM5) 
+    00                                                .                
+[19/08/2026 19:33:42] Written data (COM5) 
+    0c                                                .                
+[19/08/2026 19:33:42] Read data (COM5) 
+    0c 03 09 00 0c                                    .....            
+[19/08/2026 19:33:43] Written data (COM5) 
+    03                                                .                
+[19/08/2026 19:33:43] Read data (COM5) 
+    03                                                .                
+[19/08/2026 19:33:43] Written data (COM5) 
+    09                                                .                
+[19/08/2026 19:33:43] Read data (COM5) 
+    09                                                .                
+[19/08/2026 19:33:43] Written data (COM5) 
+    00                                                .                
+[19/08/2026 19:33:43] Read data (COM5) 
+    00                                                .                
+[19/08/2026 19:33:43] Written data (COM5) 
+    0c                                                .                
+[19/08/2026 19:33:43] Read data (COM5) 
+    0c 03 09 00 0c                                    .....            
+[19/08/2026 19:33:43] Written data (COM5) 
+    03                                                .                
+[19/08/2026 19:33:43] Read data (COM5) 
+    03                                                .                
+[19/08/2026 19:33:43] Written data (COM5) 
+    09                                                .                
+[19/08/2026 19:33:43] Read data (COM5) 
+    09                                                .                
+[19/08/2026 19:33:43] Written data (COM5) 
+    00                                                .                
+[19/08/2026 19:33:43] Read data (COM5) 
+    00                                                .                
+[19/08/2026 19:33:43] Written data (COM5) 
+    0c                                                .                
+[19/08/2026 19:33:43] Read data (COM5) 
+    0c 03 09 00 0c                                    .....            
+[19/08/2026 19:33:43] Written data (COM5) 
+    03                                                .                
+[19/08/2026 19:33:43] Read data (COM5) 
+    03                                                .                
+[19/08/2026 19:33:43] Written data (COM5) 
+    09                                                .                
+[19/08/2026 19:33:43] Read data (COM5) 
+    09                                                .                
+[19/08/2026 19:33:43] Written data (COM5) 
+    00                                                .                
+[19/08/2026 19:33:43] Read data (COM5) 
+    00                                                .                
+[19/08/2026 19:33:43] Written data (COM5) 
+    0c                                                .                
+[19/08/2026 19:33:43] Read data (COM5) 
+    0c 03 09 00 0c                                    .....            
+[19/08/2026 19:33:43] Written data (COM5) 
+    03                                                .                
+[19/08/2026 19:33:43] Read data (COM5) 
+    03                                                .                
+[19/08/2026 19:33:43] Written data (COM5) 
+    09                                                .                
+[19/08/2026 19:33:43] Read data (COM5) 
+    09                                                .                
+[19/08/2026 19:33:43] Written data (COM5) 
+    00                                                .                
+[19/08/2026 19:33:43] Read data (COM5) 
+    00                                                .                
+[19/08/2026 19:33:43] Written data (COM5) 
+    0c                                                .                
+[19/08/2026 19:33:43] Read data (COM5) 
+    0c 03 09 00 0c                                    .....            
+[19/08/2026 19:33:44] Written data (COM5) 
+    03                                                .                
+[19/08/2026 19:33:44] Read data (COM5) 
+    03                                                .                
+[19/08/2026 19:33:44] Written data (COM5) 
+    09                                                .                
+[19/08/2026 19:33:44] Read data (COM5) 
+    09                                                .                
+[19/08/2026 19:33:44] Written data (COM5) 
+    00                                                .                
+[19/08/2026 19:33:44] Read data (COM5) 
+    00                                                .                
+[19/08/2026 19:33:44] Written data (COM5) 
+    0c                                                .                
+[19/08/2026 19:33:44] Read data (COM5) 
+    0c 03 09 00 0c                                    .....            
+[19/08/2026 19:33:44] Written data (COM5) 
+    03                                                .                
+[19/08/2026 19:33:44] Read data (COM5) 
+    03                                                .                
+[19/08/2026 19:33:44] Written data (COM5) 
+    09                                                .                
+[19/08/2026 19:33:44] Read data (COM5) 
+    09                                                .                
+[19/08/2026 19:33:44] Written data (COM5) 
+    00                                                .                
+[19/08/2026 19:33:44] Read data (COM5) 
+    00                                                .                
+[19/08/2026 19:33:44] Written data (COM5) 
+    0c                                                .                
+[19/08/2026 19:33:44] Read data (COM5) 
+    0c 03 09 00 0c                                    .....            
+[19/08/2026 19:33:44] Written data (COM5) 
+    03                                                .                
+[19/08/2026 19:33:44] Read data (COM5) 
+    03                                                .                
+[19/08/2026 19:33:44] Written data (COM5) 
+    09                                                .                
+[19/08/2026 19:33:44] Read data (COM5) 
+    09                                                .                
+[19/08/2026 19:33:44] Written data (COM5) 
+    00                                                .                
+[19/08/2026 19:33:44] Read data (COM5) 
+    00                                                .                
+[19/08/2026 19:33:44] Written data (COM5) 
+    0c                                                .                
+[19/08/2026 19:33:44] Read data (COM5) 
+    0c 03 09 00 0c                                    .....            
+[19/08/2026 19:33:45] Written data (COM5) 
+    03                                                .                
+[19/08/2026 19:33:45] Read data (COM5) 
+    03                                                .                
+[19/08/2026 19:33:45] Written data (COM5) 
+    09                                                .                
+[19/08/2026 19:33:45] Read data (COM5) 
+    09                                                .                
+[19/08/2026 19:33:45] Written data (COM5) 
+    00                                                .                
+[19/08/2026 19:33:45] Read data (COM5) 
+    00                                                .                
+[19/08/2026 19:33:45] Written data (COM5) 
+    0c                                                .                
+[19/08/2026 19:33:45] Read data (COM5) 
+    0c 03 09 00 0c                                    .....            
+[19/08/2026 19:33:45] Written data (COM5) 
+    03                                                .                
+[19/08/2026 19:33:45] Read data (COM5) 
+    03                                                .                
+[19/08/2026 19:33:45] Written data (COM5) 
+    09                                                .                
+[19/08/2026 19:33:45] Read data (COM5) 
+    09                                                .                
+[19/08/2026 19:33:45] Written data (COM5) 
+    00                                                .                
+[19/08/2026 19:33:45] Read data (COM5) 
+    00                                                .                
+[19/08/2026 19:33:45] Written data (COM5) 
+    0c                                                .                
+[19/08/2026 19:33:45] Read data (COM5) 
+    0c 03 09 00 0c                                    .....            
+[19/08/2026 19:33:45] - Close port COM5 
+ 
