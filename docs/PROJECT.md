@@ -14,6 +14,14 @@ Construir uma ferramenta Python para investigar, reproduzir e diagnosticar a com
 6. Implementar K-Line/protocolo em Python.
 7. Comparar nosso tráfego com o software original.
 
+## Regra de correlação das capturas
+
+Não separar ou atribuir sessões somente pelo nome da pasta. Os logs devem ser
+correlacionados por horário, porta, sequência de eventos e caminho do processo
+responsável pela comunicação. O campo de abertura do monitor (`Opened by`) deve
+ser usado para distinguir `Multiecuscan.exe` de `python.exe`; a pasta é apenas o
+destino de armazenamento da exportação.
+
 ## Estado atual
 
 - Interface K-Line em investigação.

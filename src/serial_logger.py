@@ -138,6 +138,24 @@ class SerialLogger:
         self._write_event("DTR", {"value": value})
 
     @property
+    def rtscts(self) -> bool:
+        return self.serial.rtscts
+
+    @rtscts.setter
+    def rtscts(self, value: bool) -> None:
+        self.serial.rtscts = value
+        self._write_event("RTSCTS", {"value": value})
+
+    @property
+    def dsrdtr(self) -> bool:
+        return self.serial.dsrdtr
+
+    @dsrdtr.setter
+    def dsrdtr(self, value: bool) -> None:
+        self.serial.dsrdtr = value
+        self._write_event("DSRDTR", {"value": value})
+
+    @property
     def break_condition(self):
         return self.serial.break_condition
 

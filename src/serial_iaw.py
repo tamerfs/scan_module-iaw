@@ -91,6 +91,7 @@ class IawEcu:
         return (
             f"porta_aberta={self.ser.is_open}, baudrate={self.ser.baudrate}, "
             f"rts={self.ser.rts}, dtr={self.ser.dtr}, break={self.ser.break_condition}, "
+            f"rtscts={self.ser.rtscts}, dsrdtr={self.ser.dsrdtr}, "
             f"bytes_disponiveis={self.ser.in_waiting}"
         )
 
@@ -330,6 +331,9 @@ class IawEcu:
 
         self.baudrate = self.IAW_SCAN_COMM_BAUD
         self.open()
+        # Antes: essas atribuicoes podiam atingir apenas atributos dinamicos
+        # do SerialLogger, sem alterar a porta interna. Agora o logger
+        # encaminha e registra os dois estados para comparar com o monitor.
         self.ser.rtscts = False
         self.ser.dsrdtr = False
         self._diagnostic(f"RTS/DTR mantidos em {self.line_state} antes do slow-init.")

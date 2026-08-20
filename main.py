@@ -14,8 +14,11 @@ from functools import partial
 
 import serial
 
-from .src.serial_iaw import IawEcu
-from .src.serial_logger import SerialLogger
+# Antes: os imports relativos exigiam executar este arquivo como parte de um
+# pacote e causavam erro ao usar `python main.py`. Agora os imports absolutos
+# permitem a execucao direta prevista para este ponto de entrada.
+from src.serial_iaw import IawEcu
+from src.serial_logger import SerialLogger
 
 PORT = "COM5"  # <-- troque para a porta correta
 

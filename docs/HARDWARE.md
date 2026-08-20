@@ -13,7 +13,7 @@ Há medições de continuidade envolvendo OBD-II e conector Fiat de 3 pinos. Os 
 Medição informada em 19/08/2026, com a trava do OBD-II voltada para baixo:
 
 | Origem | Destino | Interpretação |
-|---|---|---|
+| --- | --- | --- |
 | Jacaré positivo | OBD-II pino 16 (8ª posição da fileira inferior) | +12 V |
 | Jacaré negativo | OBD-II pinos 4 e 5; Fiat pino 2 | Terra |
 | Fiat pino 3 | OBD-II pino 7 | K-line |
@@ -29,3 +29,12 @@ sobre a orientação física dos conectores.
 - equivalência entre variantes IAW;
 - alimentação/K-Line sem medição;
 - documentação genérica como substituta de medição real.
+
+--
+
+### Teste de hardware
+
+liguei o cabo de 3 pinos e os jacares na bateria e medi com um multimetro os pinos:
+ entre o pino 4 e o pino 16 deu 12 volts
+ entre o polo negativo da bateria e o pino 07 deu entorno de 8,35 volts
+ entre o polo negativo da bateria e o pino 15 deu entorno de 8,42 volts
