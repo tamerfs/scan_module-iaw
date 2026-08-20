@@ -21,6 +21,17 @@ Construir uma ferramenta Python para investigar, reproduzir e diagnosticar a com
 - `pySerial` será usado pelo nosso software.
 - O `spy://` será usado para registrar operações feitas pelo nosso próprio código.
 - Captura de IRP do software de terceiros continua sendo responsabilidade do monitor/driver do Windows.
+- O MultiECUScan foi observado na `COM5`; a configuração inicial registrada foi 4800 baud, 8N1.
+- O próximo marco é uma captura passiva completa do MultiECUScan: dados de `IRP_MJ_WRITE`,
+  `IRP_MJ_READ`, IOCTLs e seus intervalos. Não reproduzir comandos na ECU antes disso.
+
+## Configuração de captura adotada
+
+Os prints de Preferências do Free Serial Port Monitor recebidos em 20/08/2026 passam a
+ser a referência de configuração. Para uma captura forense, usar representação
+hexadecimal, timestamps absolutos e as colunas de função/direção/tamanho/porta.
+Desativar a opção de mesclar dados por 250 ms: ela é útil para leitura humana, mas
+perde a delimitação e o timing dos requests que precisamos comparar.
 
 ## Princípio
 
