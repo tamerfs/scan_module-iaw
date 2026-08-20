@@ -12,7 +12,7 @@ mais proxima da sua antes de ajustar as constantes aqui.
 """
 
 import time
-from typing import Optional
+from typing import Any, Callable, Optional
 import serial
 from serial.tools import list_ports
 
@@ -36,6 +36,7 @@ class IawEcu:
         baudrate: int = 10400,
         timeout: float = 2.0,
         line_state: bool = True,
+        serial_factory: Callable[..., Any] = serial.Serial,
     ):
         self.port_name = port
         self.address = address
@@ -45,6 +46,7 @@ class IawEcu:
         # circuito que habilita o driver da linha K. Default True: muda
         # para False se voce confirmar que seu cabo nao precisa disso.
         self.line_state = line_state
+        self.serial_factory = serial_factory
         self.ser: Optional[serial.Serial] = None
         self.diagnostics = []
         self.diagnostic_started = None
@@ -93,8 +95,12 @@ class IawEcu:
         )
 
     def open(self):
-        self.ser = serial.Serial(
-            port=None,
+        # Antes: serial.Serial era criado sem porta, configurado e aberto em
+        # tres passos. Agora a fabrica pode fornecer SerialLogger, que abre a
+        # porta atraves de spy:// e registra a sessao inteira; a fabrica padrao
+        # continua sendo serial.Serial para manter o comportamento anterior.
+        self.ser = self.serial_factory(
+            port=self.port_name,
             baudrate=self.baudrate,
             bytesize=8,
             parity=serial.PARITY_NONE,
@@ -103,10 +109,8 @@ class IawEcu:
             rtscts=False,
             dsrdtr=False,
         )
-        self.ser.port = self.port_name
         self.ser.rts = self.line_state
         self.ser.dtr = self.line_state
-        self.ser.open()
         self._diagnostic(f"Porta aberta: {self._serial_state()}.")
 
     def close(self):

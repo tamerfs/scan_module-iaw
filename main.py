@@ -10,10 +10,12 @@ Ajuste PORT abaixo para a porta serial do seu cabo:
 """
 
 import sys
+from functools import partial
 
 import serial
 
-from serial_iaw import IawEcu
+from .src.serial_iaw import IawEcu
+from .src.serial_logger import SerialLogger
 
 PORT = "COM5"  # <-- troque para a porta correta
 
@@ -31,7 +33,11 @@ def print_ecu_identification():
 def main():
     print_ecu_identification()
     print(f"Metodo de slow-init: {SLOW_INIT_METHOD}")
-    ecu = IawEcu(PORT)
+    # Antes: IawEcu(PORT) abria serial.Serial diretamente e SerialLogger era
+    # apenas importado, deixando o trafego sem captura estruturada. Agora a
+    # fabrica injeta o logger no mesmo caminho usado pelo protocolo.
+    logger_factory = partial(SerialLogger, capture_dir="data/captures")
+    ecu = IawEcu(PORT, serial_factory=logger_factory)
     try:
         iso_code = ecu.connect_iaw_scan(slow_init_method=SLOW_INIT_METHOD)
         if iso_code is None:

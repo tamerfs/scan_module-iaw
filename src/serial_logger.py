@@ -38,8 +38,6 @@ class SerialLogger:
         rtscts: bool = False,
         dsrdtr: bool = False,
     ) -> None:
-        self.port = port
-        self.baudrate = baudrate
         self.capture_dir = Path(capture_dir)
         self.capture_dir.mkdir(parents=True, exist_ok=True)
 
@@ -81,6 +79,72 @@ class SerialLogger:
     @staticmethod
     def _hex(data: bytes) -> str:
         return data.hex(" ").upper()
+
+    # Antes: o logger expunha apenas read/write e nao podia substituir
+    # serial.Serial no protocolo. Agora estas propriedades encaminham estados
+    # da porta e registram as mudancas feitas durante o slow-init.
+    @property
+    def is_open(self) -> bool:
+        return self.serial.is_open
+
+    @property
+    def in_waiting(self) -> int:
+        return self.serial.in_waiting
+
+    @property
+    def port(self):
+        return self.serial.port
+
+    @port.setter
+    def port(self, value) -> None:
+        self.serial.port = value
+
+    @property
+    def baudrate(self):
+        return self.serial.baudrate
+
+    @baudrate.setter
+    def baudrate(self, value) -> None:
+        old_value = self.serial.baudrate
+        self.serial.baudrate = value
+        if old_value != value:
+            self._write_event("BAUDRATE", {"value": value, "previous": old_value})
+
+    @property
+    def timeout(self):
+        return self.serial.timeout
+
+    @timeout.setter
+    def timeout(self, value) -> None:
+        self.serial.timeout = value
+        self._write_event("TIMEOUT", {"value": value})
+
+    @property
+    def rts(self):
+        return self.serial.rts
+
+    @rts.setter
+    def rts(self, value: bool) -> None:
+        self.serial.rts = value
+        self._write_event("RTS", {"value": value})
+
+    @property
+    def dtr(self):
+        return self.serial.dtr
+
+    @dtr.setter
+    def dtr(self, value: bool) -> None:
+        self.serial.dtr = value
+        self._write_event("DTR", {"value": value})
+
+    @property
+    def break_condition(self):
+        return self.serial.break_condition
+
+    @break_condition.setter
+    def break_condition(self, value: bool) -> None:
+        self.serial.break_condition = value
+        self._write_event("BREAK", {"value": value})
 
     def _write_event(self, event: str, payload: dict) -> None:
         record = {
@@ -139,13 +203,15 @@ class SerialLogger:
         )
         return data
 
+    def flush(self) -> None:
+        self.serial.flush()
+        self._write_event("FLUSH", {})
+
     def set_dtr(self, value: bool) -> None:
-        self.serial.dtr = value
-        self._write_event("DTR", {"value": value})
+        self.dtr = value
 
     def set_rts(self, value: bool) -> None:
-        self.serial.rts = value
-        self._write_event("RTS", {"value": value})
+        self.rts = value
 
     def reset_input_buffer(self) -> None:
         self.serial.reset_input_buffer()
