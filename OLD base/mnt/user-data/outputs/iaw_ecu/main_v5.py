@@ -13,7 +13,7 @@ import sys
 
 import serial
 
-from serial_iaw_v8 import IawEcu
+from serial_iaw import IawEcu
 
 PORT = "COM5"  # <-- troque para a porta correta
 
