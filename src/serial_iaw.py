@@ -77,43 +77,6 @@ class IawEcu:
         print("Conecte o cabo e confira a porta no sistema operacional.")
         return False
 
-    def _diagnostic(self, message: str):
-        self.diagnostics.append(message)
-        elapsed = ""
-        if self.diagnostic_started is not None:
-            elapsed = f" +{time.monotonic() - self.diagnostic_started:.3f}s"
-        print(f"[DIAGNOSTICO{elapsed}] {message}")
-
-    def _serial_state(self) -> str:
-        """Retorna o estado observavel da porta para diagnostico."""
-        if self.ser is None:
-            return "porta=nenhuma"
-        return (
-            f"porta_aberta={self.ser.is_open}, baudrate={self.ser.baudrate}, "
-            f"rts={self.ser.rts}, dtr={self.ser.dtr}, break={self.ser.break_condition}, "
-            f"rtscts={self.ser.rtscts}, dsrdtr={self.ser.dsrdtr}, "
-            f"bytes_disponiveis={self.ser.in_waiting}"
-        )
-
-    def open(self):
-        # Antes: serial.Serial era criado sem porta, configurado e aberto em
-        # tres passos. Agora a fabrica pode fornecer SerialLogger, que abre a
-        # porta atraves de spy:// e registra a sessao inteira; a fabrica padrao
-        # continua sendo serial.Serial para manter o comportamento anterior.
-        self.ser = self.serial_factory(
-            port=self.port_name,
-            baudrate=self.baudrate,
-            bytesize=8,
-            parity=serial.PARITY_NONE,
-            stopbits=1,
-            timeout=self.timeout,
-            rtscts=False,
-            dsrdtr=False,
-        )
-        self.ser.rts = self.line_state
-        self.ser.dtr = self.line_state
-        self._diagnostic(f"Porta aberta: {self._serial_state()}.")
-
     def close(self):
         if self.ser and self.ser.is_open:
             self.ser.close()
@@ -355,40 +318,32 @@ class IawEcu:
         else:
             self._slow_init_send_address_uart()
 
-        prefix = self._read_bytes(2, wait=0.1)
+        # O MultiECUScan descarta a resposta pendente do adaptador antes de
+        # ler o pacote KWP71 de sincronismo.
+        self.ser.reset_input_buffer()
         self._diagnostic(
-            f"Resposta inicial apos slow-init: {prefix.hex() or 'nenhuma'}; {self._serial_state()}."
+            f"Buffer limpo apos slow-init; aguardando ate {self.SLOW_INIT_RESPONSE_TIMEOUT:.1f} segundos pelo pacote KWP71."
         )
-
-        sync_and_iso = bytearray(prefix)
-        self._diagnostic(
-            f"Aguardando ate {self.SLOW_INIT_RESPONSE_TIMEOUT:.1f} segundos pelo sincronismo 0x55."
-        )
-        deadline = time.monotonic() + self.SLOW_INIT_RESPONSE_TIMEOUT
         original_timeout = self.ser.timeout
-        self.ser.timeout = 0.1
+        self.ser.timeout = self.SLOW_INIT_RESPONSE_TIMEOUT
         try:
-            while time.monotonic() < deadline:
-                value = self._read_bytes(1)
-                if not value:
-                    continue
-                sync_and_iso.extend(value)
-                self._diagnostic(f"Byte recebido durante espera: {value.hex()}; {self._serial_state()}.")
-                if value[0] == 0x55:
-                    break
+            wakeup = self._read_bytes(6)
         finally:
             self.ser.timeout = original_timeout
 
-        if not sync_and_iso or 0x55 not in sync_and_iso:
-            self._diagnostic(f"Sincronismo nao encontrado: recebido {sync_and_iso.hex() or 'nenhum byte'}.")
+        self._diagnostic(f"Pacote de wake-up recebido: {wakeup.hex() or 'nenhum byte'}.")
+        if len(wakeup) != 6 or wakeup[0] != 0x55:
+            self._diagnostic("Pacote KWP71 invalido: sincronismo 0x55 ausente ou pacote incompleto.")
             return None
 
-        iso_tail = self._read_bytes(5, wait=0.1)
-        if len(iso_tail) != 5:
-            self._diagnostic(f"ISO code incompleto: recebido {iso_tail.hex() or 'nenhum byte'}.")
+        checksum = sum(wakeup[:5]) & 0x7F
+        if wakeup[5] & 0x7F != checksum:
+            self._diagnostic(
+                f"Checksum KWP71 invalido: esperado {checksum:02X}, recebido {wakeup[5] & 0x7F:02X}."
+            )
             return None
 
-        iso_code = iso_tail.hex().upper()
+        iso_code = wakeup[1:6].hex().upper()
         self._diagnostic(f"ISO code recebido: {iso_code}.")
         return iso_code
 
