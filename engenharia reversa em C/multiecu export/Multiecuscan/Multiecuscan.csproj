@@ -1,0 +1,361 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{F0150FFF-D938-490F-A143-8A223E0AF3A8}</ProjectGuid>
+    <OutputType>WinExe</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>Multiecuscan</RootNamespace>
+    <AssemblyName>Multiecuscan</AssemblyName>
+    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Multiecuscan.ico</ApplicationIcon>
+    <StartupObject>Class16</StartupObject>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="PdfSharp">
+      <HintPath>C:\Program Files (x86)\Multiecuscan\PdfSharp.dll</HintPath>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Management" />
+    <Reference Include="System.Runtime.WindowsRuntime" />
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="Windows.Foundation.FoundationContract" />
+    <Reference Include="Windows.Foundation.UniversalApiContract" />
+  </ItemGroup>
+  <ItemGroup>
+    <AppDesigner Include="Properties\" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="-Module-{C7157267-14DB-4E14-81BA-08FFEFE6046C}.cs" />
+    <Compile Include="Attribute0.cs" />
+    <Compile Include="Class16.cs" />
+    <Compile Include="Class7.cs" />
+    <Compile Include="GClass0.cs" />
+    <Compile Include="GClass1.cs" />
+    <Compile Include="GClass10.cs" />
+    <Compile Include="GClass100.cs" />
+    <Compile Include="GClass101.cs" />
+    <Compile Include="GClass102.cs" />
+    <Compile Include="GClass103.cs" />
+    <Compile Include="GClass104.cs" />
+    <Compile Include="GClass105.cs" />
+    <Compile Include="GClass106.cs" />
+    <Compile Include="GClass107.cs" />
+    <Compile Include="GClass108.cs" />
+    <Compile Include="GClass109.cs" />
+    <Compile Include="GClass11.cs" />
+    <Compile Include="GClass110.cs" />
+    <Compile Include="GClass111.cs" />
+    <Compile Include="GClass112.cs" />
+    <Compile Include="GClass113.cs" />
+    <Compile Include="GClass114.cs" />
+    <Compile Include="GClass115.cs" />
+    <Compile Include="GClass116.cs" />
+    <Compile Include="GClass117.cs" />
+    <Compile Include="GClass118.cs" />
+    <Compile Include="GClass119.cs" />
+    <Compile Include="GClass12.cs" />
+    <Compile Include="GClass120.cs" />
+    <Compile Include="GClass121.cs" />
+    <Compile Include="GClass122.cs" />
+    <Compile Include="GClass123.cs" />
+    <Compile Include="GClass124.cs" />
+    <Compile Include="GClass125.cs" />
+    <Compile Include="GClass126.cs" />
+    <Compile Include="GClass127.cs" />
+    <Compile Include="GClass128.cs" />
+    <Compile Include="GClass129.cs" />
+    <Compile Include="GClass13.cs" />
+    <Compile Include="GClass14.cs" />
+    <Compile Include="GClass15.cs" />
+    <Compile Include="GClass16.cs" />
+    <Compile Include="GClass17.cs" />
+    <Compile Include="GClass18.cs" />
+    <Compile Include="GClass19.cs" />
+    <Compile Include="GClass2.cs" />
+    <Compile Include="GClass20.cs" />
+    <Compile Include="GClass21.cs" />
+    <Compile Include="GClass22.cs" />
+    <Compile Include="GClass23.cs" />
+    <Compile Include="GClass24.cs" />
+    <Compile Include="GClass25.cs" />
+    <Compile Include="GClass26.cs" />
+    <Compile Include="GClass27.cs" />
+    <Compile Include="GClass28.cs" />
+    <Compile Include="GClass29.cs" />
+    <Compile Include="GClass3.cs" />
+    <Compile Include="GClass30.cs" />
+    <Compile Include="GClass31.cs" />
+    <Compile Include="GClass32.cs" />
+    <Compile Include="GClass33.cs" />
+    <Compile Include="GClass34.cs" />
+    <Compile Include="GClass35.cs" />
+    <Compile Include="GClass36.cs" />
+    <Compile Include="GClass37.cs" />
+    <Compile Include="GClass38.cs" />
+    <Compile Include="GClass39.cs" />
+    <Compile Include="GClass4.cs" />
+    <Compile Include="GClass40.cs" />
+    <Compile Include="GClass41.cs" />
+    <Compile Include="GClass42.cs" />
+    <Compile Include="GClass43.cs" />
+    <Compile Include="GClass44.cs" />
+    <Compile Include="GClass45.cs" />
+    <Compile Include="GClass46.cs" />
+    <Compile Include="GClass47.cs" />
+    <Compile Include="GClass48.cs" />
+    <Compile Include="GClass49.cs" />
+    <Compile Include="GClass5.cs" />
+    <Compile Include="GClass50.cs" />
+    <Compile Include="GClass51.cs" />
+    <Compile Include="GClass52.cs" />
+    <Compile Include="GClass53.cs" />
+    <Compile Include="GClass54.cs" />
+    <Compile Include="GClass55.cs" />
+    <Compile Include="GClass56.cs" />
+    <Compile Include="GClass57.cs" />
+    <Compile Include="GClass58.cs" />
+    <Compile Include="GClass59.cs" />
+    <Compile Include="GClass6.cs" />
+    <Compile Include="GClass60.cs" />
+    <Compile Include="GClass61.cs" />
+    <Compile Include="GClass62.cs" />
+    <Compile Include="GClass63.cs" />
+    <Compile Include="GClass64.cs" />
+    <Compile Include="GClass65.cs" />
+    <Compile Include="GClass66.cs" />
+    <Compile Include="GClass67.cs" />
+    <Compile Include="GClass68.cs" />
+    <Compile Include="GClass69.cs" />
+    <Compile Include="GClass7.cs" />
+    <Compile Include="GClass70.cs" />
+    <Compile Include="GClass71.cs" />
+    <Compile Include="GClass72.cs" />
+    <Compile Include="GClass73.cs" />
+    <Compile Include="GClass74.cs" />
+    <Compile Include="GClass75.cs" />
+    <Compile Include="GClass76.cs" />
+    <Compile Include="GClass77.cs" />
+    <Compile Include="GClass78.cs" />
+    <Compile Include="GClass79.cs" />
+    <Compile Include="GClass8.cs" />
+    <Compile Include="GClass80.cs" />
+    <Compile Include="GClass81.cs" />
+    <Compile Include="GClass82.cs" />
+    <Compile Include="GClass83.cs" />
+    <Compile Include="GClass84.cs" />
+    <Compile Include="GClass85.cs" />
+    <Compile Include="GClass86.cs" />
+    <Compile Include="GClass87.cs" />
+    <Compile Include="GClass88.cs" />
+    <Compile Include="GClass89.cs" />
+    <Compile Include="GClass9.cs" />
+    <Compile Include="GClass90.cs" />
+    <Compile Include="GClass91.cs" />
+    <Compile Include="GClass92.cs" />
+    <Compile Include="GClass93.cs" />
+    <Compile Include="GClass94.cs" />
+    <Compile Include="GClass95.cs" />
+    <Compile Include="GClass96.cs" />
+    <Compile Include="GClass97.cs" />
+    <Compile Include="GClass98.cs" />
+    <Compile Include="GClass99.cs" />
+    <Compile Include="GDelegate0.cs" />
+    <Compile Include="GDelegate1.cs" />
+    <Compile Include="GDelegate2.cs" />
+    <Compile Include="GDelegate3.cs" />
+    <Compile Include="GDelegate4.cs" />
+    <Compile Include="GDelegate5.cs" />
+    <Compile Include="GDelegate6.cs" />
+    <Compile Include="GEnum0.cs" />
+    <Compile Include="GEnum1.cs" />
+    <Compile Include="GEventArgs0.cs" />
+    <Compile Include="GEventArgs1.cs" />
+    <Compile Include="GEventArgs2.cs" />
+    <Compile Include="GEventArgs3.cs" />
+    <Compile Include="GEventArgs4.cs" />
+    <Compile Include="GEventArgs5.cs" />
+    <Compile Include="GEventArgs6.cs" />
+    <Compile Include="GForm0.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="GForm0.Designer.cs">
+      <DependentUpon>GForm0.cs</DependentUpon>
+    </Compile>
+    <Compile Include="GForm1.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="GForm1.Designer.cs">
+      <DependentUpon>GForm1.cs</DependentUpon>
+    </Compile>
+    <Compile Include="GForm10.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="GForm10.Designer.cs">
+      <DependentUpon>GForm10.cs</DependentUpon>
+    </Compile>
+    <Compile Include="GForm11.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="GForm11.Designer.cs">
+      <DependentUpon>GForm11.cs</DependentUpon>
+    </Compile>
+    <Compile Include="GForm12.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="GForm12.Designer.cs">
+      <DependentUpon>GForm12.cs</DependentUpon>
+    </Compile>
+    <Compile Include="GForm13.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="GForm13.Designer.cs">
+      <DependentUpon>GForm13.cs</DependentUpon>
+    </Compile>
+    <Compile Include="GForm14.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="GForm14.Designer.cs">
+      <DependentUpon>GForm14.cs</DependentUpon>
+    </Compile>
+    <Compile Include="GForm15.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="GForm15.Designer.cs">
+      <DependentUpon>GForm15.cs</DependentUpon>
+    </Compile>
+    <Compile Include="GForm16.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="GForm16.Designer.cs">
+      <DependentUpon>GForm16.cs</DependentUpon>
+    </Compile>
+    <Compile Include="GForm17.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="GForm17.Designer.cs">
+      <DependentUpon>GForm17.cs</DependentUpon>
+    </Compile>
+    <Compile Include="GForm2.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="GForm2.Designer.cs">
+      <DependentUpon>GForm2.cs</DependentUpon>
+    </Compile>
+    <Compile Include="GForm3.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="GForm3.Designer.cs">
+      <DependentUpon>GForm3.cs</DependentUpon>
+    </Compile>
+    <Compile Include="GForm4.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="GForm4.Designer.cs">
+      <DependentUpon>GForm4.cs</DependentUpon>
+    </Compile>
+    <Compile Include="GForm5.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="GForm5.Designer.cs">
+      <DependentUpon>GForm5.cs</DependentUpon>
+    </Compile>
+    <Compile Include="GForm6.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="GForm6.Designer.cs">
+      <DependentUpon>GForm6.cs</DependentUpon>
+    </Compile>
+    <Compile Include="GForm7.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="GForm7.Designer.cs">
+      <DependentUpon>GForm7.cs</DependentUpon>
+    </Compile>
+    <Compile Include="GForm8.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="GForm8.Designer.cs">
+      <DependentUpon>GForm8.cs</DependentUpon>
+    </Compile>
+    <Compile Include="GForm9.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="GForm9.Designer.cs">
+      <DependentUpon>GForm9.cs</DependentUpon>
+    </Compile>
+    <Compile Include="ILLicenseModule.cs" />
+    <Compile Include="MapRowData.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Properties\Resources.cs" />
+    <Compile Include="Properties\Settings.Designer.cs">
+      <DependentUpon>Settings.settings</DependentUpon>
+      <AutoGen>True</AutoGen>
+      <DesignTimeSharedInput>True</DesignTimeSharedInput>
+    </Compile>
+    <Compile Include="SimpleValueData.cs" />
+    <Compile Include="TableDataRowE.cs" />
+    <Compile Include="TableDataRowP.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="46726fdc-c748-4f0d-8541-a0189e2c2ede" />
+    <EmbeddedResource Include="g.resources" />
+    <EmbeddedResource Include="GClass115.resources" />
+    <EmbeddedResource Include="GClass116.resources" />
+    <EmbeddedResource Include="GClass117.resources" />
+    <EmbeddedResource Include="GClass118.resources" />
+    <EmbeddedResource Include="GClass119.resources" />
+    <EmbeddedResource Include="GClass120.resources" />
+    <EmbeddedResource Include="GForm0.resources" />
+    <EmbeddedResource Include="GForm1.resources" />
+    <EmbeddedResource Include="GForm10.resources" />
+    <EmbeddedResource Include="GForm11.resources" />
+    <EmbeddedResource Include="GForm12.resources" />
+    <EmbeddedResource Include="GForm13.resources" />
+    <EmbeddedResource Include="GForm14.resources" />
+    <EmbeddedResource Include="GForm15.resources" />
+    <EmbeddedResource Include="GForm16.resources" />
+    <EmbeddedResource Include="GForm17.resources" />
+    <EmbeddedResource Include="GForm2.resources" />
+    <EmbeddedResource Include="GForm3.resources" />
+    <EmbeddedResource Include="GForm4.resources" />
+    <EmbeddedResource Include="GForm5.resources" />
+    <EmbeddedResource Include="GForm6.resources" />
+    <EmbeddedResource Include="GForm7.resources" />
+    <EmbeddedResource Include="GForm8.resources" />
+    <EmbeddedResource Include="GForm9.resources" />
+    <EmbeddedResource Include="Properties\Resources.resources" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="app.manifest" />
+    <None Include="Properties\Settings.settings">
+      <Generator>SettingsSingleFileGenerator</Generator>
+      <LastGenOutput>Settings.Designer.cs</LastGenOutput>
+    </None>
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+</Project>

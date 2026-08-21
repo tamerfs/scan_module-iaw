@@ -1,0 +1,250 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{9D5227FE-EBE1-4289-BD85-4C2D5BE76BFD}</ProjectGuid>
+    <OutputType>WinExe</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>FiatECUScan2</RootNamespace>
+    <AssemblyName>FiatECUScan2</AssemblyName>
+    <TargetFrameworkVersion>v2.0</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>FiatECUScan2.ico</ApplicationIcon>
+    <StartupObject>Class1</StartupObject>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Management" />
+    <Reference Include="System.Windows.Forms" />
+  </ItemGroup>
+  <ItemGroup>
+    <AppDesigner Include="Properties\" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Class1.cs" />
+    <Compile Include="Class16.cs" />
+    <Compile Include="Class3.cs" />
+    <Compile Include="Class4.cs" />
+    <Compile Include="FormCrack1.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FormCrack1.Designer.cs">
+      <DependentUpon>FormCrack1.cs</DependentUpon>
+    </Compile>
+    <Compile Include="FormDataEntry.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FormDataEntry.Designer.cs">
+      <DependentUpon>FormDataEntry.cs</DependentUpon>
+    </Compile>
+    <Compile Include="FormDetectCTC.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FormDetectCTC.Designer.cs">
+      <DependentUpon>FormDetectCTC.cs</DependentUpon>
+    </Compile>
+    <Compile Include="FormDisclaimer.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FormDisclaimer.Designer.cs">
+      <DependentUpon>FormDisclaimer.cs</DependentUpon>
+    </Compile>
+    <Compile Include="FormLookupInterfaces.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FormLookupInterfaces.Designer.cs">
+      <DependentUpon>FormLookupInterfaces.cs</DependentUpon>
+    </Compile>
+    <Compile Include="FormLookupModules.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FormLookupModules.Designer.cs">
+      <DependentUpon>FormLookupModules.cs</DependentUpon>
+    </Compile>
+    <Compile Include="FormMain.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FormMain.Designer.cs">
+      <DependentUpon>FormMain.cs</DependentUpon>
+    </Compile>
+    <Compile Include="FormNotify.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FormNotify.Designer.cs">
+      <DependentUpon>FormNotify.cs</DependentUpon>
+    </Compile>
+    <Compile Include="FormRegistration.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FormRegistration.Designer.cs">
+      <DependentUpon>FormRegistration.cs</DependentUpon>
+    </Compile>
+    <Compile Include="FormSettings.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FormSettings.Designer.cs">
+      <DependentUpon>FormSettings.cs</DependentUpon>
+    </Compile>
+    <Compile Include="FormTemplates.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FormTemplates.Designer.cs">
+      <DependentUpon>FormTemplates.cs</DependentUpon>
+    </Compile>
+    <Compile Include="FormTestELMConnection.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FormTestELMConnection.Designer.cs">
+      <DependentUpon>FormTestELMConnection.cs</DependentUpon>
+    </Compile>
+    <Compile Include="FormTestELMData.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FormTestELMData.Designer.cs">
+      <DependentUpon>FormTestELMData.cs</DependentUpon>
+    </Compile>
+    <Compile Include="GClass0.cs" />
+    <Compile Include="GClass1.cs" />
+    <Compile Include="GClass10.cs" />
+    <Compile Include="GClass11.cs" />
+    <Compile Include="GClass12.cs" />
+    <Compile Include="GClass13.cs" />
+    <Compile Include="GClass14.cs" />
+    <Compile Include="GClass15.cs" />
+    <Compile Include="GClass16.cs" />
+    <Compile Include="GClass17.cs" />
+    <Compile Include="GClass18.cs" />
+    <Compile Include="GClass19.cs" />
+    <Compile Include="GClass2.cs" />
+    <Compile Include="GClass20.cs" />
+    <Compile Include="GClass21.cs" />
+    <Compile Include="GClass22.cs" />
+    <Compile Include="GClass23.cs" />
+    <Compile Include="GClass24.cs" />
+    <Compile Include="GClass25.cs" />
+    <Compile Include="GClass26.cs" />
+    <Compile Include="GClass27.cs" />
+    <Compile Include="GClass28.cs" />
+    <Compile Include="GClass29.cs" />
+    <Compile Include="GClass3.cs" />
+    <Compile Include="GClass30.cs" />
+    <Compile Include="GClass31.cs" />
+    <Compile Include="GClass32.cs" />
+    <Compile Include="GClass33.cs" />
+    <Compile Include="GClass34.cs" />
+    <Compile Include="GClass35.cs" />
+    <Compile Include="GClass36.cs" />
+    <Compile Include="GClass37.cs" />
+    <Compile Include="GClass38.cs" />
+    <Compile Include="GClass39.cs" />
+    <Compile Include="GClass4.cs" />
+    <Compile Include="GClass40.cs" />
+    <Compile Include="GClass41.cs" />
+    <Compile Include="GClass42.cs" />
+    <Compile Include="GClass43.cs" />
+    <Compile Include="GClass44.cs" />
+    <Compile Include="GClass45.cs" />
+    <Compile Include="GClass46.cs" />
+    <Compile Include="GClass47.cs" />
+    <Compile Include="GClass48.cs" />
+    <Compile Include="GClass49.cs" />
+    <Compile Include="GClass5.cs" />
+    <Compile Include="GClass50.cs" />
+    <Compile Include="GClass51.cs" />
+    <Compile Include="GClass52.cs" />
+    <Compile Include="GClass53.cs" />
+    <Compile Include="GClass54.cs" />
+    <Compile Include="GClass55.cs" />
+    <Compile Include="GClass56.cs" />
+    <Compile Include="GClass57.cs" />
+    <Compile Include="GClass58.cs" />
+    <Compile Include="GClass59.cs" />
+    <Compile Include="GClass6.cs" />
+    <Compile Include="GClass60.cs" />
+    <Compile Include="GClass61.cs" />
+    <Compile Include="GClass62.cs" />
+    <Compile Include="GClass63.cs" />
+    <Compile Include="GClass64.cs" />
+    <Compile Include="GClass65.cs" />
+    <Compile Include="GClass66.cs" />
+    <Compile Include="GClass67.cs" />
+    <Compile Include="GClass68.cs" />
+    <Compile Include="GClass69.cs" />
+    <Compile Include="GClass7.cs" />
+    <Compile Include="GClass8.cs" />
+    <Compile Include="GClass9.cs" />
+    <Compile Include="GDelegate0.cs" />
+    <Compile Include="GDelegate1.cs" />
+    <Compile Include="GDelegate2.cs" />
+    <Compile Include="GDelegate3.cs" />
+    <Compile Include="GDelegate4.cs" />
+    <Compile Include="GDelegate5.cs" />
+    <Compile Include="GEnum0.cs" />
+    <Compile Include="GEventArgs0.cs" />
+    <Compile Include="GEventArgs1.cs" />
+    <Compile Include="GEventArgs2.cs" />
+    <Compile Include="GEventArgs3.cs" />
+    <Compile Include="GEventArgs4.cs" />
+    <Compile Include="GEventArgs5.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Properties\Settings.Designer.cs">
+      <DependentUpon>Settings.settings</DependentUpon>
+      <AutoGen>True</AutoGen>
+      <DesignTimeSharedInput>True</DesignTimeSharedInput>
+    </Compile>
+    <Compile Include="SimpleValueData.cs" />
+    <Compile Include="TableDataRowE.cs" />
+    <Compile Include="TableDataRowP.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="FormCrack1.resources" />
+    <EmbeddedResource Include="FormDataEntry.resources" />
+    <EmbeddedResource Include="FormDetectCTC.resources" />
+    <EmbeddedResource Include="FormDisclaimer.resources" />
+    <EmbeddedResource Include="FormLookupInterfaces.resources" />
+    <EmbeddedResource Include="FormLookupModules.resources" />
+    <EmbeddedResource Include="FormMain.resources" />
+    <EmbeddedResource Include="FormNotify.resources" />
+    <EmbeddedResource Include="FormRegistration.resources" />
+    <EmbeddedResource Include="FormSettings.resources" />
+    <EmbeddedResource Include="FormTemplates.resources" />
+    <EmbeddedResource Include="FormTestELMConnection.resources" />
+    <EmbeddedResource Include="FormTestELMData.resources" />
+    <EmbeddedResource Include="GClass15.resources" />
+    <EmbeddedResource Include="GClass60.resources" />
+    <EmbeddedResource Include="GClass65.resources" />
+    <EmbeddedResource Include="GClass67.resources" />
+    <EmbeddedResource Include="Properties\Resources.resources" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="app.manifest" />
+    <None Include="Properties\Settings.settings">
+      <Generator>SettingsSingleFileGenerator</Generator>
+      <LastGenOutput>Settings.Designer.cs</LastGenOutput>
+    </None>
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+</Project>
