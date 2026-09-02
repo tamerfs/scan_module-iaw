@@ -5,7 +5,7 @@ import serial
 from src.serial_iaw import IawEcu
 from src.serial_logger import SerialLogger
 
-PORT = "COM5" 
+PORT = "COM3" 
 # Método identificado na engenharia reversa como o correto (RTS + BREAK sincronizados)
 DEFAULT_METHOD = "break_rts" 
 SLOW_INIT_METHOD = sys.argv[1] if len(sys.argv) > 1 else DEFAULT_METHOD
