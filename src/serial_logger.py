@@ -80,6 +80,22 @@ class SerialLogger:
     def _hex(data: bytes) -> str:
         return data.hex(" ").upper()
 
+    def open(self) -> None:
+        """Abre a porta serial subjacente."""
+        if not self.serial.is_open:
+            self.serial.open()
+            self._write_event("REOPEN", {"baudrate": self.serial.baudrate})
+
+    # Certifique-se de que estas propriedades também existam para o slow-init funcionar:
+    @property
+    def break_condition(self):
+        return self.serial.break_condition
+
+    @break_condition.setter
+    def break_condition(self, value: bool) -> None:
+        self.serial.break_condition = value
+        self._write_event("BREAK", {"value": value})
+
     # Antes: o logger expunha apenas read/write e nao podia substituir
     # serial.Serial no protocolo. Agora estas propriedades encaminham estados
     # da porta e registram as mudancas feitas durante o slow-init.

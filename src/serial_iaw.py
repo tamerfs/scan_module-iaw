@@ -77,6 +77,37 @@ class IawEcu:
         print("Conecte o cabo e confira a porta no sistema operacional.")
         return False
 
+    def _diagnostic(self, message: str):
+        self.diagnostics.append(message)
+        elapsed = ""
+        if self.diagnostic_started is not None:
+            elapsed = f" +{time.monotonic() - self.diagnostic_started:.3f}s"
+        print(f"[DIAGNOSTICO{elapsed}] {message}")
+
+    def open(self):
+        """Abre ou reabre a porta serial."""
+        if self.ser is None:
+            self.ser = self.serial_factory(
+                port=self.port_name,
+                baudrate=self.baudrate,
+                timeout=self.timeout,
+            )
+        else:
+            # Importante: atualizar o baudrate no objeto logger ANTES de abrir a porta física
+            self.ser.baudrate = self.baudrate
+            if not self.ser.is_open:
+                self.ser.open()
+        
+        # Estado inicial para alimentar o cabo
+        self.ser.dtr = self.line_state
+        self.ser.rts = self.line_state
+        return self.ser
+
+    def _serial_state(self) -> str:
+        if not self.ser or not self.ser.is_open: return "CLOSED"
+        return f"Baud={self.ser.baudrate} RTS={int(self.ser.rts)} DTR={int(self.ser.dtr)} BRK={int(self.ser.break_condition)}"
+
+        
     def close(self):
         if self.ser and self.ser.is_open:
             self.ser.close()

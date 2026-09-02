@@ -1,74 +1,56 @@
-"""
-Ponto de entrada: conecta no modulo IAW via cabo KKL 409.1 e testa o handshake.
-
-Antes de rodar:
-    pip install pyserial
-
-Ajuste PORT abaixo para a porta serial do seu cabo:
-    Windows: veja no Gerenciador de Dispositivos > Portas (COM & LPT), ex "COM5"
-    Linux / Raspberry Pi: normalmente "/dev/ttyUSB0"
-"""
-
 import sys
+import time
 from functools import partial
-
 import serial
-
-# Antes: os imports relativos exigiam executar este arquivo como parte de um
-# pacote e causavam erro ao usar `python main.py`. Agora os imports absolutos
-# permitem a execucao direta prevista para este ponto de entrada.
 from src.serial_iaw import IawEcu
 from src.serial_logger import SerialLogger
 
-PORT = "COM5"  # <-- troque para a porta correta
-
-# "uart" (baudrate literal 5bps) ou "break" (bit-bang via break_condition).
-# Pode sobrescrever passando na linha de comando: python main.py break
-SLOW_INIT_METHOD = sys.argv[1] if len(sys.argv) > 1 else "uart"
-
-
-def print_ecu_identification():
-    print("Identificacao conhecida da ECU:")
-    for name, value in IawEcu.IDENTIFICATION.items():
-        print(f"  {name}: {value}")
-
+PORT = "COM5" 
+# Método identificado na engenharia reversa como o correto (RTS + BREAK sincronizados)
+DEFAULT_METHOD = "break_rts" 
+SLOW_INIT_METHOD = sys.argv[1] if len(sys.argv) > 1 else DEFAULT_METHOD
 
 def main():
-    print_ecu_identification()
-    print(f"Metodo de slow-init: {SLOW_INIT_METHOD}")
-    # Antes: IawEcu(PORT) abria serial.Serial diretamente e SerialLogger era
-    # apenas importado, deixando o trafego sem captura estruturada. Agora a
-    # fabrica injeta o logger no mesmo caminho usado pelo protocolo.
+    print(f"--- Iniciando Conexão ECU IAW 1ABG ---")
+    print(f"Método: {SLOW_INIT_METHOD}")
+
+    # Logger configurado para salvar na pasta data/captures
     logger_factory = partial(SerialLogger, capture_dir="data/captures")
     ecu = IawEcu(PORT, serial_factory=logger_factory)
+
     try:
+        # 1. Handshake KWP71 (Despertar + Slow Init)
+        print("Aguardando ISO Code...")
         iso_code = ecu.connect_iaw_scan(slow_init_method=SLOW_INIT_METHOD)
+        
         if iso_code is None:
-            print("Handshake nao concluido. Consulte os diagnosticos acima.")
+            print("\n[ERRO] Handshake falhou. A ECU não enviou o sincronismo 0x55.")
             return
 
-        print(f"Handshake OK! ISO code recebido: {iso_code}")
+        print(f"\n[SUCESSO] ISO Code: {iso_code}")
+        time.sleep(0.2) # Pausa de estabilização
 
+        # 2. Chave de Conexão (Obrigatório para IAW 1AB/1AF)
+        print("Enviando chave de segurança (03 34 51 88)...")
         if not ecu.send_connection_key():
-            print("Chave de conexao (03 34 51 88) nao foi confirmada pelo ECU.")
+            print("[ERRO] Chave de conexão não confirmada pela ECU.")
             return
 
-        print("Conexao estabelecida!")
+        print("[OK] Conexão Total Estabelecida!")
 
-        # Requisicao de teste generica - o comando/payload real depende da
-        # sub-familia do IAW. Comece só validando se o handshake acima
-        # funciona; depois ajuste o payload aqui.
-        resposta = ecu.send_frame(bytes([0x01]))
-        print(f"Resposta bruta: {resposta.hex()}")
+        # 3. Teste de Leitura (Frame 0x01 - Identificação)
+        print("\nSolicitando dados da ECU...")
+        res = ecu.send_frame(bytes([0x01]))
+        if res:
+            print(f"Resposta: {res.hex().upper()}")
 
     except serial.SerialException as e:
-        print(f"Erro de pyserial na porta {PORT}: {e}")
-        print("Falha de biblioteca ou hardware; o traceback sera mantido para depuracao.")
-        raise
+        print(f"\n[ERRO SERIAL] Verifique o cabo na porta {PORT}: {e}")
+    except Exception as e:
+        print(f"\n[ERRO] {e}")
     finally:
         ecu.close()
-
+        print("\nSessão encerrada.")
 
 if __name__ == "__main__":
-    print('chamado o init e logo apos a funcao main()')
     main()
