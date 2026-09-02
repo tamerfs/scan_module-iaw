@@ -19,14 +19,14 @@ from serial.tools import list_ports
 class IawEcu:
     IAW_SCAN_COMM_BAUD = 4800
     SLOW_INIT_BIT_TIME = 0.2
-    SLOW_INIT_RESPONSE_TIMEOUT = 3.0
+    SLOW_INIT_RESPONSE_TIMEOUT = 4.0 # Janela generosa como no código C
     COMMON_BAUDRATES = (10400, 9600, 4800, 19200, 38400, 57600, 115200)
+    
+    # Dados de referência para IAW 1AB / 1AF
     IDENTIFICATION = {
         "family": "Magneti Marelli IAW 1AB / 1AF",
         "iso_code": "B0 86 83 15 23",
-        "fiat_drawing_number": "861448460000",
-        "programming_date": "24/07/2012",
-        "interface": "VagCom/KKL USB/RS232 com CH340",
+        "interface": "VagCom/KKL USB (CH340)",
     }
 
     def __init__(
@@ -42,9 +42,6 @@ class IawEcu:
         self.address = address
         self.baudrate = baudrate
         self.timeout = timeout
-        # Muitos clones de cabo KKL/409.1 usam DTR/RTS para alimentar o
-        # circuito que habilita o driver da linha K. Default True: muda
-        # para False se voce confirmar que seu cabo nao precisa disso.
         self.line_state = line_state
         self.serial_factory = serial_factory
         self.ser: Optional[serial.Serial] = None
@@ -53,29 +50,7 @@ class IawEcu:
 
     @staticmethod
     def available_ports():
-        """Retorna as portas seriais detectadas no sistema operacional."""
         return list(list_ports.comports())
-
-    def validate_port(self) -> bool:
-        """Valida a porta configurada e explica como corrigir o problema."""
-        available_ports = self.available_ports()
-        port_found = any(
-            item.device == self.port_name
-            or item.device.lower() == self.port_name.lower()
-            for item in available_ports
-        )
-        if port_found:
-            return True
-
-        print(f"Erro: a porta {self.port_name} nao foi encontrada.")
-        if available_ports:
-            print("Portas detectadas:")
-            for item in available_ports:
-                print(f"  - {item.device}: {item.description}")
-        else:
-            print("Nenhuma porta serial foi detectada.")
-        print("Conecte o cabo e confira a porta no sistema operacional.")
-        return False
 
     def _diagnostic(self, message: str):
         self.diagnostics.append(message)
@@ -85,7 +60,7 @@ class IawEcu:
         print(f"[DIAGNOSTICO{elapsed}] {message}")
 
     def open(self):
-        """Abre ou reabre a porta serial."""
+        """Abre ou reabre a porta serial garantindo a alimentação do cabo."""
         if self.ser is None:
             self.ser = self.serial_factory(
                 port=self.port_name,
@@ -93,384 +68,167 @@ class IawEcu:
                 timeout=self.timeout,
             )
         else:
-            # Importante: atualizar o baudrate no objeto logger ANTES de abrir a porta física
+            # Atualiza baudrate no objeto (importante para SerialLogger registrar)
             self.ser.baudrate = self.baudrate
             if not self.ser.is_open:
                 self.ser.open()
         
-        # Estado inicial para alimentar o cabo
+        # Alimenta o circuito do adaptador KKL
         self.ser.dtr = self.line_state
         self.ser.rts = self.line_state
         return self.ser
+
+    def close(self):
+        if self.ser and self.ser.is_open:
+            self.ser.close()
 
     def _serial_state(self) -> str:
         if not self.ser or not self.ser.is_open: return "CLOSED"
         return f"Baud={self.ser.baudrate} RTS={int(self.ser.rts)} DTR={int(self.ser.dtr)} BRK={int(self.ser.break_condition)}"
 
-        
-    def close(self):
-        if self.ser and self.ser.is_open:
-            self.ser.close()
-
-    def _slow_init_send_address(self):
-        """Bit-bang do byte de endereco do ECU a 5 bps via break_condition (linha K).
-
-        MANTIDO para referencia/testes, mas nao usado por padrao: varios
-        clones CH340/CH341 ignoram SetCommBreak silenciosamente, entao esse
-        metodo pode nao chegar a transmitir nada de verdade na linha K.
-        Veja _slow_init_send_address_uart() para o metodo recomendado.
-        """
-        bit_time = self.SLOW_INIT_BIT_TIME
-        bits = [0]  # start bit (nivel baixo)
-        bits += [(self.address >> i) & 1 for i in range(8)]
-        bits.append(1)  # stop bit (nivel alto)
-        self._diagnostic(f"Slow-init bits={''.join(str(bit) for bit in bits)}.")
-        for index, bit in enumerate(bits):
-            self.ser.break_condition = bit == 0
-            self._diagnostic(
-                f"Slow-init bit {index + 1}/{len(bits)} valor={bit}: {self._serial_state()}."
-            )
-            time.sleep(bit_time)
-        self.ser.break_condition = False
-        self.ser.rts = self.line_state
-        self._diagnostic(f"Slow-init finalizado: {self._serial_state()}.")
-
-    def _slow_init_send_address_ctrl(self, line: str = "rts", invert: bool = False):
-        """Bit-bang do byte de endereco via uma linha de controle (RTS ou
-        DTR) em vez da UART/TX. Varios cabos KKL/409.1 usam essas linhas
-        pra desenhar o pulso de 5 baud na linha K, contornando a
-        limitacao de baudrate minima da UART do chip USB-serial - e o log
-        do MultiECUScan sugere ser esse o caso aqui (a transmissao do
-        endereco nunca aparece como "Written data" no monitor de porta).
-
-        line: "rts" ou "dtr". invert: inverte a polaridade (0/1) caso a
-        primeira tentativa nao funcione - nao temos como saber de antemao
-        qual polaridade o cabo espera.
-        """
-        if self.ser is None or not self.ser.is_open:
-            raise RuntimeError("Chame open() antes de _slow_init_send_address_ctrl().")
-
-        bit_time = self.SLOW_INIT_BIT_TIME
-        bits = [0]  # start bit (nivel baixo)
-        bits += [(self.address >> i) & 1 for i in range(8)]
-        bits.append(1)  # stop bit (nivel alto)
-        self._diagnostic(f"Slow-init via {line} (invert={invert}) bits={''.join(str(b) for b in bits)}.")
-
-        def set_line(level_low: bool):
-            value = level_low
-            if invert:
-                value = not value
-            if line == "dtr":
-                self.ser.dtr = value
-            else:
-                self.ser.rts = value
-
-        for index, bit in enumerate(bits):
-            set_line(bit == 0)
-            self._diagnostic(
-                f"Slow-init bit {index + 1}/{len(bits)} valor={bit}: {self._serial_state()}."
-            )
-            time.sleep(bit_time)
-
-        set_line(False)
-        self._diagnostic(f"Slow-init via {line} finalizado: {self._serial_state()}.")
-
     def _slow_init_send_address_break_rts(self):
-        """Bit-bang alternando RTS e break_condition JUNTOS, sincronizados
-        por bit (DTR fica desligado o tempo todo): bit 0 = RTS ligado +
-        BREAK ligado; bit 1 = RTS desligado + BREAK desligado. Padrao
-        identificado no log de IOCTLs (IOCTL_SERIAL_SET_RTS sempre
-        acompanhado de IOCTL_SERIAL_SET_BREAK_ON, e IOCTL_SERIAL_CLR_RTS
-        sempre acompanhado de IOCTL_SERIAL_SET_BREAK_OFF) capturado numa
-        conexao real e bem-sucedida do MultiECUScan com esse mesmo cabo.
-        """
+        """Bit-bang RTS+BREAK sincronizados (padrão MultiECUScan)."""
         if self.ser is None or not self.ser.is_open:
-            raise RuntimeError("Chame open() antes de _slow_init_send_address_break_rts().")
+            raise RuntimeError("Chame open() antes do slow-init.")
 
-        self.ser.dtr = False
+        # Garante alimentação durante o processo
+        self.ser.dtr = self.line_state
+        
         bit_time = self.SLOW_INIT_BIT_TIME
-        bits = [0]  # start bit
+        bits = [0]  # start bit (LOW)
         bits += [(self.address >> i) & 1 for i in range(8)]
-        bits.append(1)  # stop bit
-        self._diagnostic(f"Slow-init via RTS+BREAK combinados, bits={''.join(str(b) for b in bits)}.")
+        bits.append(1)  # stop bit (HIGH)
+        
+        self._diagnostic(f"Iniciando pulso 5 baud no endereço 0x{self.address:02X}...")
 
         for index, bit in enumerate(bits):
-            asserted = bit == 0
+            # No KKL: RTS/BREAK em True = Nível Baixo na linha K
+            asserted = (bit == 0)
             self.ser.rts = asserted
             self.ser.break_condition = asserted
-            self._diagnostic(
-                f"Slow-init bit {index + 1}/{len(bits)} valor={bit}: {self._serial_state()}."
-            )
             time.sleep(bit_time)
 
-        self.ser.rts = False
+        # Restaura estado de repouso (Linha K em HIGH)
         self.ser.break_condition = False
-        self._diagnostic(f"Slow-init via RTS+BREAK finalizado: {self._serial_state()}.")
+        self.ser.rts = self.line_state
+        self._diagnostic(f"Slow-init finalizado. Estado: {self._serial_state()}")
 
-    def _slow_init_send_address_uart(self):
-        """Envia o byte de endereco a 5 baud trocando a baudrate da MESMA
-        porta ja aberta (sem fechar/reabrir), escrevendo o byte
-        normalmente e deixando o hardware da UART modular o sinal - em
-        vez de simular via break_condition.
-
-        Fechar e reabrir a porta USB-serial no meio do processo (como a
-        versao anterior deste metodo fazia, usando uma porta separada)
-        pode resetar o driver CH340 bem no momento em que o ECU espera o
-        sinal - o MultiECUScan mantem a porta aberta o tempo todo durante
-        o slow-init, entao replicamos isso aqui.
-
-        Precisa ser chamado com a porta principal (self.ser) JA ABERTA.
-        """
-        if self.ser is None or not self.ser.is_open:
-            raise RuntimeError("Chame open() antes de _slow_init_send_address_uart().")
-
-        original_baud = self.ser.baudrate
-        self._diagnostic(f"Trocando baudrate para 5 (era {original_baud}) para enviar endereco 0x{self.address:02X}.")
-        self.ser.baudrate = 5
-        self.ser.write(bytes([self.address]))
-        self.ser.flush()
-        # 10 bits (start+8+stop) a 5 baud = 2s; margem extra por seguranca
-        time.sleep(2.2)
-        self.ser.baudrate = original_baud
-        self._diagnostic(f"Byte de endereco enviado a 5 baud (UART real); baudrate restaurada para {original_baud}.")
-
-    def _handshake_once(self) -> Optional[bytes]:
-        """Executa uma tentativa de handshake na porta ja aberta."""
-        self._diagnostic(
-            f"Parametros: address=0x{self.address:02X}, baudrate={self.baudrate}, timeout={self.timeout}s."
-        )
-        time.sleep(2.5)  # intervalo minimo de silencio antes do slow-init
-        self._slow_init_send_address_uart()
-        self._diagnostic("Slow-init enviado.")
-
-        self.ser.reset_input_buffer()
-
-        sync = self._read_bytes(1, wait=0.3)
-        if not sync or sync[0] != 0x55:
-            self._diagnostic(f"Sincronismo nao recebido: esperado 0x55, recebido {sync.hex() or 'nenhum byte' }.")
-            return None
-        self._diagnostic(f"Sincronismo recebido: {sync.hex()}.")
-
-        kw = self._read_bytes(2, wait=0.3)
-        if len(kw) != 2:
-            self._diagnostic(f"Keywords incompletas: recebido {kw.hex() or 'nenhum byte'}.")
-            return None
-        self._diagnostic(f"Keywords recebidas: {kw.hex()}.")
-
-        # Tester ecoa o complemento de KW2; ECU deve responder com o
-        # complemento do byte de endereco enviado no slow-init.
-        self._write_bytes(bytes([(~kw[1]) & 0xFF]))
-        self._diagnostic(f"Resposta KW2 enviada: {((~kw[1]) & 0xFF):02X}.")
-        addr_echo = self._read_bytes(1, wait=0.3)
-        if not addr_echo or addr_echo[0] != ((~self.address) & 0xFF):
-            self._diagnostic(
-                f"Pareamento falhou: esperado complemento do endereco {((~self.address) & 0xFF):02X}, "
-                f"recebido {addr_echo.hex() or 'nenhum byte'}."
-            )
-            return None
-
-        self._diagnostic(f"Pareamento confirmado: {addr_echo.hex()}.")
-        return kw
-
-    def connect(self) -> Optional[bytes]:
-        """Executa o handshake; falhas de protocolo viram diagnostico."""
-        self.diagnostics.clear()
-        self._diagnostic(f"Iniciando handshake na porta {self.port_name}.")
-        self.open()
-        return self._handshake_once()
-
-    def _query_with_echo(self, request: int) -> Optional[int]:
-        """Envia uma consulta KWP simples e descarta o eco do adaptador."""
-        self.ser.reset_input_buffer()
-        self._write_bytes(bytes([request]))
-        response = self._read_bytes(2, wait=0.005)
-        if len(response) != 2:
-            self._diagnostic(f"Consulta 0x{request:02X}: resposta incompleta {response.hex() or 'nenhuma'}.")
-            return None
-        if response[0] != request:
-            self._diagnostic(f"Consulta 0x{request:02X}: eco inesperado {response[0]:02X}.")
-            return None
-        self._diagnostic(f"Consulta 0x{request:02X}: resposta {response[1]:02X}.")
-        return response[1]
-
-    def connect_iaw_scan(self, slow_init_method: str = "uart") -> Optional[str]:
-        """Conecta reproduzindo a sequencia observada no MultiECUScan.
-
-        slow_init_method:
-            "uart"          - troca a baudrate da porta ja aberta para 5 (padrao)
-            "break"         - bit-bang via break_condition (TX)
-            "rts"           - bit-bang via RTS
-            "rts_inverted"  - bit-bang via RTS com polaridade invertida
-            "dtr"           - bit-bang via DTR
-            "dtr_inverted"  - bit-bang via DTR com polaridade invertida
-            "break_rts"     - RTS+break_condition juntos (padrao real do
-                               MultiECUScan identificado no log de IOCTLs)
-        """
+    def connect_iaw_scan(self, slow_init_method: str = "break_rts") -> Optional[str]:
+        """Handshake KWP71 completo seguindo a engenharia reversa."""
         self.diagnostics.clear()
         self.diagnostic_started = time.monotonic()
-        self._diagnostic(f"Iniciando modo IAW Scan 2 na porta {self.port_name}.")
+        self._diagnostic(f"Conectando ECU na porta {self.port_name}...")
 
+        # 1. Sondagem de Interface (9600 baud)
         self.baudrate = 9600
         self.open()
-        self._diagnostic("Executando despertar da interface em 9600 baud: 00.")
         self._write_bytes(bytes([0x00]))
-        wake_response = self._read_bytes(1, wait=0.05)
-        self._diagnostic(f"Resposta do despertar: {wake_response.hex() or 'nenhuma'}.")
+        res = self._read_bytes(1, wait=0.05)
+        self._diagnostic(f"Sondagem (9600): enviou 00, recebeu {res.hex() or 'nada'}")
         self.close()
-        # No log real do MultiECUScan ha ~2s de silencio entre o fechamento
-        # da sondagem inicial e a reabertura da porta para o slow-init de
-        # verdade (18:22:42 -> 18:22:44). 0.5s nao e suficiente e o ECU
-        # ignora a tentativa seguinte.
+        
+        # Pausa obrigatória de silêncio observada no monitor (2s)
         time.sleep(2.0)
 
+        # 2. Inicialização Lenta (4800 baud)
         self.baudrate = self.IAW_SCAN_COMM_BAUD
         self.open()
-        # Antes: essas atribuicoes podiam atingir apenas atributos dinamicos
-        # do SerialLogger, sem alterar a porta interna. Agora o logger
-        # encaminha e registra os dois estados para comparar com o monitor.
-        self.ser.rtscts = False
-        self.ser.dsrdtr = False
-        self._diagnostic(f"RTS/DTR mantidos em {self.line_state} antes do slow-init.")
-        self._diagnostic("Baudrate de comunicacao/slow-init configurado em 4800.")
-
-        self._diagnostic("Executando uma unica inicializacao lenta do endereco 0x33.")
-        if slow_init_method == "break":
-            self._slow_init_send_address()
-        elif slow_init_method == "rts":
-            self._slow_init_send_address_ctrl("rts", invert=False)
-        elif slow_init_method == "rts_inverted":
-            self._slow_init_send_address_ctrl("rts", invert=True)
-        elif slow_init_method == "dtr":
-            self._slow_init_send_address_ctrl("dtr", invert=False)
-        elif slow_init_method == "dtr_inverted":
-            self._slow_init_send_address_ctrl("dtr", invert=True)
-        elif slow_init_method == "break_rts":
+        
+        if slow_init_method == "break_rts":
             self._slow_init_send_address_break_rts()
         else:
             self._slow_init_send_address_uart()
 
-        # O MultiECUScan descarta a resposta pendente do adaptador antes de
-        # ler o pacote KWP71 de sincronismo.
-        self.ser.reset_input_buffer()
-        self._diagnostic(
-            f"Buffer limpo apos slow-init; aguardando ate {self.SLOW_INIT_RESPONSE_TIMEOUT:.1f} segundos pelo pacote KWP71."
-        )
-        original_timeout = self.ser.timeout
-        self.ser.timeout = self.SLOW_INIT_RESPONSE_TIMEOUT
-        try:
-            wakeup = self._read_bytes(6)
-        finally:
-            self.ser.timeout = original_timeout
+        # 3. Caça ao Sincronismo 0x55 (KWP71)
+        self._diagnostic("Aguardando sincronismo 0x55...")
+        start_wait = time.monotonic()
+        packet = b""
+        
+        while (time.monotonic() - start_wait) < self.SLOW_INIT_RESPONSE_TIMEOUT:
+            if self.ser.in_waiting > 0:
+                byte = self.ser.read(1)
+                if byte == b"\x55":
+                    # Encontrou o início! Lê o ISO (5 bytes) + Checksum (1 byte)
+                    packet = byte + self.ser.read(5)
+                    break
+            time.sleep(0.01)
 
-        self._diagnostic(f"Pacote de wake-up recebido: {wakeup.hex() or 'nenhum byte'}.")
-        if len(wakeup) != 6 or wakeup[0] != 0x55:
-            self._diagnostic("Pacote KWP71 invalido: sincronismo 0x55 ausente ou pacote incompleto.")
+        if not packet or len(packet) < 6:
+            self._diagnostic(f"Falha: ECU não respondeu. Recebido: {packet.hex().upper() or 'vazio'}")
             return None
 
-        checksum = sum(wakeup[:5]) & 0x7F
-        if wakeup[5] & 0x7F != checksum:
-            self._diagnostic(
-                f"Checksum KWP71 invalido: esperado {checksum:02X}, recebido {wakeup[5] & 0x7F:02X}."
-            )
-            return None
+        # 4. Validação de Checksum (Soma dos 5 primeiros bytes & 0x7F)
+        checksum_calc = sum(packet[:5]) & 0x7F
+        checksum_recv = packet[5] & 0x7F
+        
+        self._diagnostic(f"Pacote KWP71: {packet.hex().upper()}")
+        
+        if checksum_calc != checksum_recv:
+            self._diagnostic(f"Aviso: Checksum divergente (Esperado: {checksum_calc:02X}, Recebido: {checksum_recv:02X})")
 
-        iso_code = wakeup[1:6].hex().upper()
-        self._diagnostic(f"ISO code recebido: {iso_code}.")
+        iso_code = packet[1:6].hex().upper()
+        self._diagnostic(f"Handshake OK! ISO: {iso_code}")
         return iso_code
 
-    # Sequencia observada no log do MultiECUScan logo apos o ISO code:
-    # enviada byte a byte (cada um ecoado pelo cabo), e o ECU confirma
-    # ecoando os mesmos 4 bytes de volta apos o ultimo. Nos testes ate
-    # agora essa sequencia veio sempre identica (03 34 51 88); se em
-    # capturas futuras ela mudar, provavelmente depende do ISO code lido.
+    # Chave de segurança para liberar diagnóstico na família IAW 1ABG
     CONNECTION_KEY = bytes([0x03, 0x34, 0x51, 0x88])
 
     def send_connection_key(self) -> bool:
-        """Envia a chave de conexao pos-ISO-code e confirma o eco do ECU.
-
-        Deve ser chamado logo apos connect_iaw_scan() retornar um iso_code
-        valido, na mesma sessao/porta aberta (nao feche a porta entre os dois).
-        """
-        self._diagnostic(f"Enviando chave de conexao: {self.CONNECTION_KEY.hex()}.")
+        """Envia a sequência 03 34 51 88 e valida o espelhamento da ECU."""
+        self._diagnostic(f"Enviando Connection Key: {self.CONNECTION_KEY.hex().upper()}")
+        
+        # Envia os 3 primeiros bytes e espera eco simples
         for byte in self.CONNECTION_KEY[:-1]:
             self._write_bytes(bytes([byte]))
             echo = self._read_bytes(1, wait=0.05)
-            self._diagnostic(f"Enviado {byte:02X}, eco recebido {echo.hex() or 'nenhum'}.")
             if not echo or echo[0] != byte:
-                self._diagnostic("Eco divergente durante a chave de conexao.")
+                self._diagnostic(f"Falha na chave: Enviado {byte:02X}, Eco {echo.hex() or 'nada'}")
                 return False
 
-        last = self.CONNECTION_KEY[-1]
-        self._write_bytes(bytes([last]))
-        # depois do ultimo byte: 1 byte de eco proprio + 4 bytes de
-        # confirmacao do ECU (a propria chave espelhada de volta)
-        response = self._read_bytes(1 + len(self.CONNECTION_KEY), wait=0.1)
-        self._diagnostic(f"Resposta final da chave de conexao: {response.hex() or 'nenhuma'}.")
+        # Envia o último byte
+        last_byte = self.CONNECTION_KEY[-1]
+        self._write_bytes(bytes([last_byte]))
+        
+        # A resposta final deve ser: o eco do ultimo byte + os 4 bytes da chave repetidos
+        # Total 5 bytes de resposta
+        response = self._read_bytes(5, wait=0.1)
+        self._diagnostic(f"Confirmação da chave: {response.hex().upper()}")
 
-        if len(response) < 1 + len(self.CONNECTION_KEY):
-            self._diagnostic("Resposta incompleta - conexao nao confirmada.")
+        if len(response) < 5 or response[1:] != self.CONNECTION_KEY:
+            self._diagnostic("Erro: ECU não confirmou a chave de segurança.")
             return False
 
-        own_echo, confirmation = response[0], response[1:]
-        if own_echo != last or confirmation != self.CONNECTION_KEY:
-            self._diagnostic(
-                f"Confirmacao inesperada: esperava eco {last:02X} + {self.CONNECTION_KEY.hex()}, "
-                f"recebi {own_echo:02X} + {confirmation.hex()}."
-            )
-            return False
-
-        self._diagnostic("Conexao confirmada pelo ECU.")
+        self._diagnostic("Conexão de diagnóstico ATIVA.")
         return True
 
-    def scan_baudrates(self, baudrates=None) -> Optional[tuple[int, bytes]]:
-        """Testa baudrates comuns e retorna (baudrate, keywords) ao parear."""
-        if not self.validate_port():
-            return None
-
-        rates = tuple(baudrates or self.COMMON_BAUDRATES)
-        self.diagnostics.clear()
-        self._diagnostic(f"Iniciando varredura de baudrates: {rates}.")
-
-        for rate in rates:
-            self.close()
-            self.baudrate = rate
-            self._diagnostic(f"Testando baudrate {rate}.")
-            try:
-                self.open()
-                keywords = self._handshake_once()
-            except serial.SerialException:
-                self.close()
-                raise
-
-            if keywords is not None:
-                self._diagnostic(f"Baudrate encontrado: {rate}.")
-                return rate, keywords
-
-            self.close()
-
-        self._diagnostic("Nenhum baudrate testado concluiu o pareamento.")
-        return None
+    def send_frame(self, payload: bytes, response_len: int = 64) -> bytes:
+        """Envia comando no formato [Tamanho][Dados][Checksum]."""
+        # Formato comum KWP71: Payload + Checksum (Soma dos bytes)
+        frame = bytes([len(payload)]) + payload
+        frame += bytes([sum(frame) & 0xFF])
+        
+        self.ser.reset_input_buffer()
+        self._write_bytes(frame)
+        
+        # O adaptador costuma ecoar o que escrevemos
+        echo = self._read_bytes(len(frame))
+        
+        # Resposta real da ECU
+        return self._read_bytes(response_len, wait=0.1)
 
     def _write_bytes(self, data: bytes):
         self.ser.write(data)
         self.ser.flush()
 
     def _read_bytes(self, n: int, wait: Optional[float] = None) -> bytes:
-        if wait:
-            time.sleep(wait)
+        if wait: time.sleep(wait)
         return self.ser.read(n)
 
-    @staticmethod
-    def checksum(data: bytes) -> int:
-        return sum(data) & 0xFF
-
-    def send_frame(self, payload: bytes, response_len: int = 64) -> bytes:
-        """Monta um frame [tamanho][payload...][checksum], envia e devolve a resposta crua.
-
-        O formato exato de payload/checksum pode variar por sub-familia do IAW -
-        ajuste aqui depois de confirmar o comando certo para o seu ECU.
-        """
-        frame = bytes([len(payload)]) + payload
-        frame += bytes([self.checksum(frame)])
-        self._write_bytes(frame)
-        return self._read_bytes(response_len, wait=0.1)
+    def _slow_init_send_address_uart(self):
+        """Método alternativo via hardware UART (5 baud)."""
+        original_baud = self.ser.baudrate
+        self.ser.baudrate = 5
+        self.ser.write(bytes([self.address]))
+        self.ser.flush()
+        time.sleep(2.2)
+        self.ser.baudrate = original_baud
