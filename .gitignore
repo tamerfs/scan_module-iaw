@@ -5,4 +5,4 @@ __pycache__/
 logs/*
 data/captures/*.log
 data/captures/*.jsonl
-
+base_python_antiga/
