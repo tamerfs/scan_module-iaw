@@ -87,3 +87,9 @@ Abrir 4800 -> Bit-bang 5 baud -> Ler 0x55
 Dica extra para o Raspberry Pi:
 
 Se você planeja deixar isso rodando como um módulo fixo no carro, o Raspberry Pi permite que você use os pinos de hardware (GPIO 14 e 15) diretamente com um conversor de nível (K-Line Transceiver como o L9637D), eliminando o cabo USB e tornando a comunicação ainda mais robusta e rápida.
+
+## comandos a enviar a ecu
+
+Comando 0x01: Solicita Identificação (ID).
+Comando 0x0B: Solicita a Tabela de Sensores (RPM, Temperatura, etc.).
+Comando 0x07: Lê erros na memória (DTCs).
