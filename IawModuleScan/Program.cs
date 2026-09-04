@@ -16,7 +16,7 @@ namespace IawModuleScan
 
         static void Main(string[] args)
         {
-            Console.WriteLine("--- IAW 1ABG Visual Scanner v22 ---");
+            Console.WriteLine("--- IAW 1ABG Forensic Scanner v24 ---");
             _timer.Start();
 
             _port = new SerialPort(PORT_NAME, BAUD_RATE, Parity.None, 8, StopBits.One);
@@ -24,9 +24,9 @@ namespace IawModuleScan
 
             try
             {
-                Log("Abrindo porta...");
+                Log("Conectando...");
                 _port.Open();
-                _port.DtrEnable = true; 
+                _port.DtrEnable = true;
                 _port.RtsEnable = false;
 
                 if (PerformSlowInit(0x10))
@@ -34,35 +34,25 @@ namespace IawModuleScan
                     Log("Handshake OK! Autenticando...");
                     if (SendKeyAndSync())
                     {
-                        Log("SESSÃO ATIVA! Iniciando loop de leitura...");
+                        Log("SESSÃO ATIVA! Entrando em modo de escuta...");
                         
-                        int falhasConsecutivas = 0;
-                        while (falhasConsecutivas < 5)
-                        {
-                            if (ExecuteDiagnosticCycle())
-                            {
-                                falhasConsecutivas = 0;
-                                Thread.Sleep(200); // Frequência de atualização
-                            }
-                            else
-                            {
-                                falhasConsecutivas++;
-                                Log($"Tentativa de recuperação {falhasConsecutivas}/5...");
-                                Thread.Sleep(500);
-                            }
-                        }
-                        Log("Muitas falhas na sequência. Encerrando.");
+                        // Envia pedido inicial
+                        RequestSensorsV24();
+
+                        // Loop de monitoramento de linha
+                        MonitorLine();
                     }
                 }
             }
             catch (Exception ex)
             {
-                Log($"ERRO: {ex.Message}");
+                Log($"ERRO NO LOOP: {ex.Message}");
             }
             finally
             {
                 _port.Close();
                 Log("Fim.");
+                Console.WriteLine("Pressione qualquer tecla para sair...");
                 Console.ReadKey();
             }
         }
@@ -107,100 +97,90 @@ namespace IawModuleScan
                 while (_port.BytesToRead == 0 && (DateTime.Now - st).TotalMilliseconds < 200) { }
                 if (_port.BytesToRead > 0) _port.ReadByte(); 
             }
-            Thread.Sleep(200);
-            if (_port.BytesToRead >= 4)
-            {
-                byte[] sync = new byte[_port.BytesToRead];
-                _port.Read(sync, 0, sync.Length);
-                Log($"ECU Sincronizada: {BitConverter.ToString(sync)}");
-                return true;
-            }
-            return false;
+            Thread.Sleep(300);
+            return _port.BytesToRead >= 4;
         }
 
-        static bool ExecuteDiagnosticCycle()
+        static void RequestSensorsV24()
         {
-            // 1. Enviar Pedido de Dados (02-01-03)
-            // No log v13, este comando retornou o Status 0A
-            byte[] cmd = { 0x02, 0x01, 0x03 };
+            byte[] cmd = { 0x02, 0x08, 0x0A };
             _port.DiscardInBuffer();
             Log($"TX -> {BitConverter.ToString(cmd)}");
             _port.Write(cmd, 0, 3);
+        }
 
-            // 2. Aguarda resposta da ECU (Devemos ver o eco de 3 bytes + Frame de 4 bytes)
-            // Total: 7 bytes. Se recebermos o 0x0A, avançamos.
-            byte[] response = CaptureFrame(7, 800);
-            if (response == null) { Log("Sem resposta ao comando 01."); return false; }
-
-            Log($"RX (Bruto) <- {BitConverter.ToString(response)}");
-
-            if (response.Contains((byte)0x0A))
+        static void MonitorLine()
+        {
+            Log("Monitorando tráfego... (Aguardando resposta da ECU)");
+            Stopwatch sw = Stopwatch.StartNew();
+            
+            while (sw.Elapsed.TotalSeconds < 20)
             {
-                // 3. Enviar Gatilho 0x03 para descarregar a tabela
-                Log("Gatilho 0x03 enviado.");
-                _port.Write(new byte[] { 0x03 }, 0, 1);
+                if (_port.BytesToRead > 0)
+                {
+                    byte b = (byte)_port.ReadByte();
+                    
+                    // Se detectar o início do frame de status da ECU (03-0A...)
+                    if (b == 0x03 && _port.BytesToRead >= 3)
+                    {
+                        byte cmd = (byte)_port.ReadByte();
+                        byte data = (byte)_port.ReadByte();
+                        byte cs = (byte)_port.ReadByte();
+                        Log($"STATUS ECU: Size 03, ID {cmd:X2}, Val {data:X2}, CS {cs:X2}");
+                        
+                        if (cmd == 0x0A)
+                        {
+                            Log("Confirmado Status 0A. Enviando Gatilho 0x03...");
+                            _port.Write(new byte[] { 0x03 }, 0, 1);
+                        }
+                    }
+                    // Se detectar um frame grande (Size 0x1F = 31 bytes ou 0x20 = 32)
+                    else if (b == 0x1F || b == 0x20)
+                    {
+                        byte size = b;
+                        byte[] payload = new byte[size - 1];
+                        Log($"Detectado Frame de Dados: Tamanho {size}");
+                        
+                        for (int i = 0; i < payload.Length; i++)
+                        {
+                            DateTime wait = DateTime.Now;
+                            while (_port.BytesToRead == 0 && (DateTime.Now - wait).TotalMilliseconds < 500) { }
+                            payload[i] = (byte)_port.ReadByte();
+                        }
+                        
+                        Log($"CONTEÚDO: {BitConverter.ToString(payload)}");
+                        
+                        if (payload.Length >= 15) {
+                            ParseDataV24(payload);
+                            // Envia 0x03 de novo para manter a ECU mandando
+                            _port.Write(new byte[] { 0x03 }, 0, 1);
+                            RequestSensorsV24(); // Pede nova tabela
+                        }
+                    }
+                    else
+                    {
+                        // Qualquer outro byte solto (eco ou lixo)
+                        Console.WriteLine($"[HEX BRUTO]: {b:X2}");
+                    }
+                }
+                Thread.Sleep(1);
+            }
+        }
+
+        static void ParseDataV24(byte[] d)
+        {
+            try {
+                // Mapeamento IAW 1ABG (Padrão KWP71)
+                // d[0] costuma ser o ID do comando de volta (08)
+                double bat = d[11] * 0.065;
+                int rpm = d[2] * 40;
+                int agua = d[4] - 40;
                 
-                // 4. Captura a Tabela de Sensores
-                // Esperamos o eco do 0x03 + Frame de Dados (Tamanho costuma ser 0x1F ou 0x20)
-                byte[] table = CaptureFrame(20, 1000); 
-                if (table != null)
-                {
-                    Log($"TABELA RECEBIDA: {BitConverter.ToString(table)}");
-                    ParseData(table);
-                    return true;
-                }
-            }
-            return false;
+                Console.WriteLine("\n************************************");
+                Console.WriteLine($"  BATERIA: {bat:F2}V  |  RPM: {rpm}");
+                Console.WriteLine($"  ÁGUA:    {agua}°C");
+                Console.WriteLine("************************************\n");
+            } catch { }
         }
-
-        static byte[] CaptureFrame(int minBytes, int timeoutMs)
-        {
-            DateTime limit = DateTime.Now.AddMilliseconds(timeoutMs);
-            while (DateTime.Now < limit)
-            {
-                if (_port.BytesToRead >= minBytes)
-                {
-                    byte[] buf = new byte[_port.BytesToRead];
-                    _port.Read(buf, 0, buf.Length);
-                    return buf;
-                }
-                Thread.Sleep(10);
-            }
-            return null;
-        }
-
-        static void ParseData(byte[] raw)
-        {
-            // Localiza o frame de dados real (pula ecos)
-            // O frame de dados IAW começa com o tamanho (ex: 1F ou 20)
-            int startIdx = -1;
-            for (int i = 0; i < raw.Length; i++)
-            {
-                if (raw[i] == 0x1F || raw[i] == 0x20 || raw[i] == 0x21) { startIdx = i; break; }
-            }
-
-            if (startIdx != -1 && raw.Length > startIdx + 15)
-            {
-                byte[] d = raw.Skip(startIdx).ToArray();
-                try {
-                    // Índices baseados na IAW 1ABG.81
-                    double bateria = d[11] * 0.065;
-                    int rpm = d[2] * 40; // Se o motor estiver parado, será 0
-                    int agua = d[4] - 40;
-                    int ar = d[5] - 40;
-
-                    Console.WriteLine("\n************************************");
-                    Console.WriteLine($"  BATERIA: {bateria:F2}V");
-                    Console.WriteLine($"  RPM:     {rpm}");
-                    Console.WriteLine($"  ÁGUA:    {agua}°C");
-                    Console.WriteLine($"  AR:      {ar}°C");
-                    Console.WriteLine("************************************\n");
-                } catch { Log("Erro ao decifrar bytes da tabela."); }
-            }
-        }
-    }
-
-    public static class Ext {
-        public static bool Contains(this byte[] arr, byte val) => arr.Any(b => b == val);
     }
 }
