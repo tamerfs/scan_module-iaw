@@ -5,184 +5,150 @@ using System.IO.Ports;
 using System.Threading;
 using System.Diagnostics;
 using System.Linq;
+using System.Collections.Generic;
 
-
-namespace IawDiagnosticTool
+namespace IawModuleScan
 {
     class Program
     {
-        // Configurações extraídas da engenharia reversa (IAW 1AB / 1AF)
         const string PORT_NAME = "COM5";
-        const int BAUD_RATE = 4800; // Velocidade padrão IAW KWP71
-        const byte ECU_ADDRESS = 0x33; // Endereço 5-baud padrão Fiat/Marelli
-        const int BIT_TIME_MS = 200;   // 200ms = 5 Baud
-
+        const int BAUD_RATE = 4800;
+        
         static SerialPort _port = null!;
         static Stopwatch _timer = new Stopwatch();
 
         static void Main(string[] args)
         {
-            Console.WriteLine("--- IAW 1ABG Diagnostic Tool (C# Version) ---");
-            Console.WriteLine($"Config: {PORT_NAME}, 4800bps, Addr: 0x{ECU_ADDRESS:X2}");
+            Console.WriteLine("--- IAW 1ABG Diagnostic Tool v2 (C#) ---");
+            _timer.Start();
 
             _port = new SerialPort(PORT_NAME, BAUD_RATE, Parity.None, 8, StopBits.One);
-            _port.ReadTimeout = 3000;
-            _port.WriteTimeout = 1000;
+            _port.ReadTimeout = 2000;
 
             try
             {
-                _timer.Start();
-                Log("Abrindo porta...");
+                Log("Abrindo porta e alimentando cabo (DTR=On)...");
                 _port.Open();
+                _port.DtrEnable = true; // Essencial para alimentar o chip CH340
+                _port.RtsEnable = false; // Começa em repouso (12V)
 
-                // 1. Despertar (Sondagem 9600 como no MES)
+                // 1. Despertar da Interface
                 PerformWakeup();
 
-                // 2. Slow Init (Bit-bang 5 Baud)
-                if (PerformSlowInit())
+                // 2. Tentar Slow Init com endereço 0x33 (Padrão Marelli)
+                // Se falhar, você pode trocar para 0x10 aqui em um segundo teste.
+                if (PerformSlowInit(0x10))
                 {
-                    Log("Handshake KWP71 concluído com sucesso!");
-                    
-                    // 3. Chave de Conexão (Sequência MES)
-                    if (SendConnectionKey())
-                    {
-                        Log("Sessão de diagnóstico aberta. Lendo dados...");
-                        ReadEcuInfo();
-                    }
+                    Log("SUCESSO! ECU respondeu.");
+                    // Chave de conexão observada no MES
+                    SendConnectionKey();
+                }
+                else
+                {
+                    Log("ECU não respondeu ao 0x33. Verifique a ignição ou tente o endereço 0x10.");
                 }
             }
             catch (Exception ex)
             {
-                Log($"ERRO FATAL: {ex.Message}");
+                Log($"ERRO: {ex.Message}");
             }
             finally
             {
-                if (_port.IsOpen) _port.Close();
-                Log("Porta fechada. Pressione qualquer tecla para sair.");
-                Console.ReadKey();
+                _port.Close();
+                Log("Fim da sessão.");
             }
         }
 
-        static void Log(string message)
-        {
-            Console.WriteLine($"[{_timer.ElapsedMilliseconds / 1000.0:F3}s] {message}");
-        }
+        static void Log(string message) => Console.WriteLine($"[{_timer.ElapsedMilliseconds / 1000.0:F3}s] {message}");
 
         static void PerformWakeup()
         {
-            Log("Iniciando sondagem de interface (9600 baud)...");
             _port.BaudRate = 9600;
-            _port.RtsEnable = true;
-            _port.DtrEnable = true;
-
+            Log("Sondagem 9600 baud...");
             _port.Write(new byte[] { 0x00 }, 0, 1);
-            Thread.Sleep(50);
+            Thread.Sleep(100);
+            if (_port.BytesToRead > 0) Log($"Resposta Interface: 0x{_port.ReadByte():X2}");
             
-            if (_port.BytesToRead > 0)
-            {
-                byte res = (byte)_port.ReadByte();
-                Log($"Resposta da interface: 0x{res:X2}");
-            }
-
             _port.Close();
-            Log("Aguardando silêncio de 2 segundos...");
+            Log("Silêncio de 2s...");
             Thread.Sleep(2000);
             _port.BaudRate = BAUD_RATE;
             _port.Open();
+            _port.DtrEnable = true;
         }
 
-        static bool PerformSlowInit()
+        static bool PerformSlowInit(byte address)
         {
-            Log("Executando Slow Init (5 Baud) via BreakState...");
+            Log($"Iniciando Slow Init no endereço 0x{address:X2} (5 Baud)...");
             
-            // Garantir que DTR está False como no seu TEST-005 que teve sucesso parcial
-            _port.DtrEnable = false; 
-            _port.RtsEnable = false;
+            // Limpa lixo do buffer antes de começar
+            _port.DiscardInBuffer();
 
-            // Bit-bang do endereço 0x33 (LSB first)
-            // Start bit (0), 8 bits de dados, Stop bit (1)
-            byte[] bits = new byte[10];
-            bits[0] = 0; // Start
-            for (int i = 0; i < 8; i++) bits[i + 1] = (byte)((ECU_ADDRESS >> i) & 1);
-            bits[9] = 1; // Stop
+            // LSB first: Start(0), 8 bits, Stop(1)
+            List<int> bits = new List<int> { 0 };
+            for (int i = 0; i < 8; i++) bits.Add((address >> i) & 1);
+            bits.Add(1);
 
-            foreach (var bit in bits)
+            Stopwatch bitTimer = new Stopwatch();
+
+            foreach (int bit in bits)
             {
-                // No KKL: BreakState = true coloca a linha em 0V
-                _port.BreakState = (bit == 0);
-                // O MultiECUScan alterna RTS junto com o Break em alguns drivers
-                _port.RtsEnable = (bit == 0); 
+                bitTimer.Restart();
+                bool isLow = (bit == 0);
                 
-                Thread.Sleep(BIT_TIME_MS);
+                // No KKL/CH340: BreakState e RTS controlam o nível da linha K
+                _port.BreakState = isLow;
+                _port.RtsEnable = isLow;
+
+                // Aguarda exatamente 200ms por bit
+                while (bitTimer.ElapsedMilliseconds < 200) { /* Busy wait para precisão */ }
             }
 
+            // Garante linha em repouso (12V / High)
             _port.BreakState = false;
             _port.RtsEnable = false;
-            Log("Fim do Slow Init. Aguardando 0x55 (Sincronismo)...");
+            
+            Log("Aguardando 0x55 (Hunting mode)...");
+            
+            // Dá um tempo curto para o eco do próprio endereço chegar e descarta
+            Thread.Sleep(100);
+            _port.DiscardInBuffer();
 
-            // Busca faminta pelo 0x55
-            long limit = _timer.ElapsedMilliseconds + 4000;
+            long limit = _timer.ElapsedMilliseconds + 3000;
             while (_timer.ElapsedMilliseconds < limit)
             {
                 if (_port.BytesToRead > 0)
                 {
                     byte b = (byte)_port.ReadByte();
+                    Log($"[DEBUG RX] Byte recebido: 0x{b:X2}");
+                    
                     if (b == 0x55)
                     {
-                        Log("Sincronismo 0x55 recebido!");
+                        Log("!!! Sincronismo 0x55 detectado !!!");
                         byte[] iso = new byte[5];
+                        // Lê os 5 bytes do ISO Code
                         for (int i = 0; i < 5; i++) iso[i] = (byte)_port.ReadByte();
-                        Log($"ISO Code Detectado: {BitConverter.ToString(iso).Replace("-", " ")}");
+                        Log($"ISO Code: {BitConverter.ToString(iso).Replace("-", " ")}");
                         return true;
                     }
                 }
-                Thread.Sleep(10);
+                Thread.Sleep(5);
             }
-
-            Log("Falha: ECU não enviou 0x55.");
             return false;
         }
 
-        static bool SendConnectionKey()
+        static void SendConnectionKey()
         {
             byte[] key = { 0x03, 0x34, 0x51, 0x88 };
-            Log($"Enviando chave de conexão: {BitConverter.ToString(key)}");
-
-            try {
-                for (int i = 0; i < 3; i++)
-                {
-                    _port.Write(key, i, 1);
-                    int echo = _port.ReadByte(); // Aguarda eco
-                }
-                _port.Write(key, 3, 1);
-                
-                byte[] response = new byte[5];
-                for (int i = 0; i < 5; i++) response[i] = (byte)_port.ReadByte();
-                
-                Log($"Resposta da chave: {BitConverter.ToString(response)}");
-                return response.Skip(1).SequenceEqual(key);
-            }
-            catch { return false; }
-        }
-
-        static void ReadEcuInfo()
-        {
-            // Comando 0x01: Identificação no protocolo KWP71
-            byte[] command = { 0x01, 0x01 }; // [Tamanho][Dados]
-            byte checksum = (byte)(command.Sum(b => b) & 0xFF);
-            byte[] frame = { 0x01, 0x01, checksum };
-
-            Log("Solicitando identificação...");
-            _port.Write(frame, 0, 3);
-            
-            // Ler eco e resposta
-            Thread.Sleep(200);
-            if (_port.BytesToRead > 0)
+            Log("Enviando Chave de Conexão...");
+            foreach (byte b in key)
             {
-                byte[] buffer = new byte[_port.BytesToRead];
-                _port.Read(buffer, 0, buffer.Length);
-                Log($"Dados Recebidos (Hex): {BitConverter.ToString(buffer)}");
+                _port.Write(new byte[] { b }, 0, 1);
+                Thread.Sleep(20);
+                if (_port.BytesToRead > 0) _port.ReadByte(); // Descarta eco
             }
+            Log("Chave enviada. Aguardando confirmação...");
+            // Aqui você leria a resposta da ECU (espelhamento)
         }
     }
 }
