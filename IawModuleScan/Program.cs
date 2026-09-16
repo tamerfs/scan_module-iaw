@@ -59,33 +59,54 @@ namespace IawModuleScan
 
         static void Log(string message) => Console.WriteLine($"[{_timer.ElapsedMilliseconds / 1000.0:F3}s] {message}");
 
-        static bool PerformSlowInit(byte address)
+    static bool PerformSlowInit(byte address)
+    {
+        _port.DiscardInBuffer();
+        List<int> bits = new List<int> { 0 };
+        for (int i = 0; i < 8; i++) bits.Add((address >> i) & 1);
+        bits.Add(1);
+        Stopwatch bitTimer = new Stopwatch();
+        foreach (int bit in bits)
         {
-            _port.DiscardInBuffer();
-            List<int> bits = new List<int> { 0 };
-            for (int i = 0; i < 8; i++) bits.Add((address >> i) & 1);
-            bits.Add(1);
-            Stopwatch bitTimer = new Stopwatch();
-            foreach (int bit in bits)
-            {
-                bitTimer.Restart();
-                _port.BreakState = _port.RtsEnable = (bit == 0);
-                while (bitTimer.ElapsedMilliseconds < 200) { }
-            }
-            _port.BreakState = _port.RtsEnable = false;
-            long limit = _timer.ElapsedMilliseconds + 3000;
-            while (_timer.ElapsedMilliseconds < limit)
-            {
-                if (_port.BytesToRead > 0 && _port.ReadByte() == 0x55)
-                {
-                    for (int i = 0; i < 5; i++) _port.ReadByte();
-                    return true;
-                }
-                Thread.Sleep(10);
-            }
-            return false;
+            bitTimer.Restart();
+            _port.BreakState = _port.RtsEnable = (bit == 0);
+            while (bitTimer.ElapsedMilliseconds < 200) { }
         }
+        _port.BreakState = _port.RtsEnable = false;
 
+        long limit = _timer.ElapsedMilliseconds + 3000;
+        while (_timer.ElapsedMilliseconds < limit)
+        {
+            if (_port.BytesToRead > 0)
+            {
+                int sync = _port.ReadByte();
+                if (sync != 0x55) continue;
+
+                byte kb1 = ReadByteBlocking(300);
+                byte kb2 = ReadByteBlocking(300);
+                Log($"SYNC 55, KB1={kb1:X2}, KB2={kb2:X2}");
+
+                // Responde com o complemento de KB2
+                byte inv = (byte)(~kb2);
+                Thread.Sleep(30); // dentro da janela W4 (~25-50ms)
+                _port.Write(new byte[] { inv }, 0, 1);
+
+                byte addrComplement = ReadByteBlocking(300);
+                Log($"Resposta da ECU ao complemento: {addrComplement:X2} (esperado: {(byte)(~address):X2})");
+
+                return addrComplement == (byte)(~address);
+            }
+            Thread.Sleep(10);
+        }
+        return false;
+    }
+
+    static byte ReadByteBlocking(int timeoutMs)
+    {
+        DateTime start = DateTime.Now;
+        while (_port.BytesToRead == 0 && (DateTime.Now - start).TotalMilliseconds < timeoutMs) { }
+        return _port.BytesToRead > 0 ? (byte)_port.ReadByte() : (byte)0x00;
+    }
         static bool SendKeyAndSync()
         {
             byte[] key = { 0x03, 0x34, 0x51, 0x88 };
@@ -121,17 +142,25 @@ namespace IawModuleScan
                     byte b = (byte)_port.ReadByte();
                     
                     // Se detectar o início do frame de status da ECU (03-0A...)
-                    if (b == 0x03 && _port.BytesToRead >= 3)
+                    if (b == 0x03)
                     {
-                        byte cmd = (byte)_port.ReadByte();
-                        byte data = (byte)_port.ReadByte();
-                        byte cs = (byte)_port.ReadByte();
+                        byte[] frame = new byte[3];
+                        for (int i = 0; i < 3; i++)
+                        {
+                            DateTime wait = DateTime.Now;
+                            while (_port.BytesToRead == 0 && (DateTime.Now - wait).TotalMilliseconds < 300) { }
+                            if (_port.BytesToRead == 0) { Log("Timeout aguardando status frame"); return; }
+                            frame[i] = (byte)_port.ReadByte();
+                        }
+                        byte cmd = frame[0], data = frame[1], cs = frame[2];
                         Log($"STATUS ECU: Size 03, ID {cmd:X2}, Val {data:X2}, CS {cs:X2}");
-                        
+
                         if (cmd == 0x0A)
                         {
                             Log("Confirmado Status 0A. Enviando Gatilho 0x03...");
                             _port.Write(new byte[] { 0x03 }, 0, 1);
+                            Thread.Sleep(5);
+                            if (_port.BytesToRead > 0) _port.ReadByte(); // descarta eco do trigger
                         }
                     }
                     // Se detectar um frame grande (Size 0x1F = 31 bytes ou 0x20 = 32)
