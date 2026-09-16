@@ -36,11 +36,7 @@ namespace IawModuleScan
                     {
                         Log("SESSÃO ATIVA! Entrando em modo de escuta...");
                         
-                        // Envia pedido inicial
-                        RequestSensorsV24();
-
-                        // Loop de monitoramento de linha
-                        MonitorLine();
+                        ScanCommands();
                     }
                 }
             }
@@ -59,54 +55,55 @@ namespace IawModuleScan
 
         static void Log(string message) => Console.WriteLine($"[{_timer.ElapsedMilliseconds / 1000.0:F3}s] {message}");
 
-    static bool PerformSlowInit(byte address)
-    {
-        _port.DiscardInBuffer();
-        List<int> bits = new List<int> { 0 };
-        for (int i = 0; i < 8; i++) bits.Add((address >> i) & 1);
-        bits.Add(1);
-        Stopwatch bitTimer = new Stopwatch();
-        foreach (int bit in bits)
+        static bool PerformSlowInit(byte address)
         {
-            bitTimer.Restart();
-            _port.BreakState = _port.RtsEnable = (bit == 0);
-            while (bitTimer.ElapsedMilliseconds < 200) { }
-        }
-        _port.BreakState = _port.RtsEnable = false;
-
-        long limit = _timer.ElapsedMilliseconds + 3000;
-        while (_timer.ElapsedMilliseconds < limit)
-        {
-            if (_port.BytesToRead > 0)
+            _port.DiscardInBuffer();
+            List<int> bits = new List<int> { 0 };
+            for (int i = 0; i < 8; i++) bits.Add((address >> i) & 1);
+            bits.Add(1);
+            Stopwatch bitTimer = new Stopwatch();
+            foreach (int bit in bits)
             {
-                int sync = _port.ReadByte();
-                if (sync != 0x55) continue;
-
-                byte kb1 = ReadByteBlocking(300);
-                byte kb2 = ReadByteBlocking(300);
-                Log($"SYNC 55, KB1={kb1:X2}, KB2={kb2:X2}");
-
-                // Responde com o complemento de KB2
-                byte inv = (byte)(~kb2);
-                Thread.Sleep(30); // dentro da janela W4 (~25-50ms)
-                _port.Write(new byte[] { inv }, 0, 1);
-
-                byte addrComplement = ReadByteBlocking(300);
-                Log($"Resposta da ECU ao complemento: {addrComplement:X2} (esperado: {(byte)(~address):X2})");
-
-                return addrComplement == (byte)(~address);
+                bitTimer.Restart();
+                _port.BreakState = _port.RtsEnable = (bit == 0);
+                while (bitTimer.ElapsedMilliseconds < 200) { }
             }
-            Thread.Sleep(10);
-        }
-        return false;
-    }
+            _port.BreakState = _port.RtsEnable = false;
 
-    static byte ReadByteBlocking(int timeoutMs)
-    {
-        DateTime start = DateTime.Now;
-        while (_port.BytesToRead == 0 && (DateTime.Now - start).TotalMilliseconds < timeoutMs) { }
-        return _port.BytesToRead > 0 ? (byte)_port.ReadByte() : (byte)0x00;
-    }
+            long limit = _timer.ElapsedMilliseconds + 3000;
+            while (_timer.ElapsedMilliseconds < limit)
+            {
+                if (_port.BytesToRead > 0)
+                {
+                    int sync = _port.ReadByte();
+                    if (sync != 0x55) continue;
+
+                    Log("SYNC 55 recebido. Só escutando por 500ms, sem enviar nada...");
+                    var bytes = new List<byte>();
+                    DateTime start = DateTime.Now;
+                    while ((DateTime.Now - start).TotalMilliseconds < 500)
+                    {
+                        if (_port.BytesToRead > 0)
+                        {
+                            bytes.Add((byte)_port.ReadByte());
+                            start = DateTime.Now; // reinicia a janela a cada byte novo
+                        }
+                    }
+                    Log($"Burst espontâneo da ECU ({bytes.Count} bytes): {BitConverter.ToString(bytes.ToArray())}");
+                    return true;
+                }
+                Thread.Sleep(10);
+            }
+            return false;
+        }
+
+        static byte ReadByteBlocking(int timeoutMs)
+        {
+            DateTime start = DateTime.Now;
+            while (_port.BytesToRead == 0 && (DateTime.Now - start).TotalMilliseconds < timeoutMs) { }
+            return _port.BytesToRead > 0 ? (byte)_port.ReadByte() : (byte)0x00;
+        }
+
         static bool SendKeyAndSync()
         {
             byte[] key = { 0x03, 0x34, 0x51, 0x88 };
@@ -122,77 +119,38 @@ namespace IawModuleScan
             return _port.BytesToRead >= 4;
         }
 
-        static void RequestSensorsV24()
+        static void ScanCommands()
         {
-            byte[] cmd = { 0x02, 0x08, 0x0A };
-            _port.DiscardInBuffer();
-            Log($"TX -> {BitConverter.ToString(cmd)}");
-            _port.Write(cmd, 0, 3);
-        }
-
-        static void MonitorLine()
-        {
-            Log("Monitorando tráfego... (Aguardando resposta da ECU)");
-            Stopwatch sw = Stopwatch.StartNew();
-            
-            while (sw.Elapsed.TotalSeconds < 20)
+            for (int c = 0x00; c <= 0x30; c++)
             {
-                if (_port.BytesToRead > 0)
-                {
-                    byte b = (byte)_port.ReadByte();
-                    
-                    // Se detectar o início do frame de status da ECU (03-0A...)
-                    if (b == 0x03)
-                    {
-                        byte[] frame = new byte[3];
-                        for (int i = 0; i < 3; i++)
-                        {
-                            DateTime wait = DateTime.Now;
-                            while (_port.BytesToRead == 0 && (DateTime.Now - wait).TotalMilliseconds < 300) { }
-                            if (_port.BytesToRead == 0) { Log("Timeout aguardando status frame"); return; }
-                            frame[i] = (byte)_port.ReadByte();
-                        }
-                        byte cmd = frame[0], data = frame[1], cs = frame[2];
-                        Log($"STATUS ECU: Size 03, ID {cmd:X2}, Val {data:X2}, CS {cs:X2}");
+                byte cmd = (byte)c;
+                byte checksum = (byte)(0x02 + cmd);
+                byte[] req = { 0x02, cmd, checksum };
 
-                        if (cmd == 0x0A)
-                        {
-                            Log("Confirmado Status 0A. Enviando Gatilho 0x03...");
-                            _port.Write(new byte[] { 0x03 }, 0, 1);
-                            Thread.Sleep(5);
-                            if (_port.BytesToRead > 0) _port.ReadByte(); // descarta eco do trigger
-                        }
-                    }
-                    // Se detectar um frame grande (Size 0x1F = 31 bytes ou 0x20 = 32)
-                    else if (b == 0x1F || b == 0x20)
+                _port.DiscardInBuffer();
+                _port.Write(req, 0, 3);
+
+                // descarta o eco (3 bytes)
+                for (int i = 0; i < 3; i++) ReadByteBlocking(200);
+
+                // espera por uma resposta real
+                var resp = new List<byte>();
+                DateTime start = DateTime.Now;
+                while ((DateTime.Now - start).TotalMilliseconds < 400)
+                {
+                    if (_port.BytesToRead > 0)
                     {
-                        byte size = b;
-                        byte[] payload = new byte[size - 1];
-                        Log($"Detectado Frame de Dados: Tamanho {size}");
-                        
-                        for (int i = 0; i < payload.Length; i++)
-                        {
-                            DateTime wait = DateTime.Now;
-                            while (_port.BytesToRead == 0 && (DateTime.Now - wait).TotalMilliseconds < 500) { }
-                            payload[i] = (byte)_port.ReadByte();
-                        }
-                        
-                        Log($"CONTEÚDO: {BitConverter.ToString(payload)}");
-                        
-                        if (payload.Length >= 15) {
-                            ParseDataV24(payload);
-                            // Envia 0x03 de novo para manter a ECU mandando
-                            _port.Write(new byte[] { 0x03 }, 0, 1);
-                            RequestSensorsV24(); // Pede nova tabela
-                        }
-                    }
-                    else
-                    {
-                        // Qualquer outro byte solto (eco ou lixo)
-                        Console.WriteLine($"[HEX BRUTO]: {b:X2}");
+                        resp.Add((byte)_port.ReadByte());
+                        start = DateTime.Now;
                     }
                 }
-                Thread.Sleep(1);
+
+                if (resp.Count > 0)
+                    Log($"CMD {cmd:X2} -> {resp.Count} bytes: {BitConverter.ToString(resp.ToArray())}");
+                else
+                    Log($"CMD {cmd:X2} -> (sem resposta)");
+
+                Thread.Sleep(50);
             }
         }
 
