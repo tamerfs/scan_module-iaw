@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("IawModuleScan")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+9ed8e6a1db11378cccd55985cf2749f3ac9d2e64")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+d7123afd873ca21afb5c3349cee26aa852632790")]
 [assembly: System.Reflection.AssemblyProductAttribute("IawModuleScan")]
 [assembly: System.Reflection.AssemblyTitleAttribute("IawModuleScan")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
