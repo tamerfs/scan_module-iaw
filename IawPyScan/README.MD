@@ -208,6 +208,10 @@ sudo nmcli device wifi hotspot ifname wlan0 ssid Strada password 'troque-esta-se
 ```
 O celular conecta nessa rede e abre `http://10.42.0.1:8000`.
 
+### Iniciar sozinho
+Copie `strada.service` para `/etc/systemd/system/` e rode `sudo systemctl enable --now strada`.
+
+
 ## Iniciar sozinho
 
 ### adicionando o serviço no systemd
