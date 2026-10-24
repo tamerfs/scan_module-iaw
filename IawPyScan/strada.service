@@ -1,5 +1,4 @@
-# Instalar:  sudo cp strada.service /etc/systemd/system/ && sudo systemctl enable --now strada
-# Ajuste User e os caminhos se o usuário/pasta forem outros.
+
 [Unit]
 Description=Painel Strada (ECU + GPS + sensores)
 After=network.target

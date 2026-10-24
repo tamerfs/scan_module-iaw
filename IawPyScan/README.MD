@@ -208,6 +208,39 @@ sudo nmcli device wifi hotspot ifname wlan0 ssid Strada password 'troque-esta-se
 ```
 O celular conecta nessa rede e abre `http://10.42.0.1:8000`.
 
-### Iniciar sozinho
+## Iniciar sozinho
+
+### adicionando o serviço no systemd
+
 Copie `strada.service` para `/etc/systemd/system/` e rode `sudo systemctl enable --now strada`.
 
+```linux
+sudo cp strada.service /etc/systemd/system/ 
+sudo systemctl daemon-reload
+sudo systemctl enable --now strada
+```
+
+Ajuste User e os caminhos se o usuário/pasta forem outros.
+
+```linux
+# Para conferir o estado e ver os logs:
+systemctl status scan-module-iaw.service
+journalctl -u scan-module-iaw.service -f
+
+# Se o programa precisar acessar a porta serial USB, adicione o usuário ao grupo dialout e reinicie o Raspberry Pi:
+sudo usermod -aG dialout taer
+sudo reboot
+```
+
+```linux
+cd ~/scan_module-iaw/IawPyScan
+python3 -m venv .venv
+.venv/bin/pip install flask pyserial smbus2
+.venv/bin/python main.py --simulate
+
+# ou rode 
+source .venv/bin/activate 
+#uma vez por sessão e use python
+python3 main.py --simulate              # ECU, GPS e BMP falsos
+python3 main.py --gps mock --bmp mock   # ECU real, GPS e BMP falsos
+```
