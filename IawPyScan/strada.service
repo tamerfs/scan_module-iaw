@@ -1,0 +1,15 @@
+# Instalar:  sudo cp strada.service /etc/systemd/system/ && sudo systemctl enable --now strada
+# Ajuste User e os caminhos se o usuário/pasta forem outros.
+[Unit]
+Description=Painel Strada (ECU + GPS + sensores)
+After=network.target
+
+[Service]
+User=pi
+WorkingDirectory=/home/pi/scan_module-iaw/IawPyScan
+ExecStart=/home/pi/scan_module-iaw/IawPyScan/.venv/bin/python main.py --port /dev/ttyUSB0 --gps /dev/serial0 --bmp real --imu real --ds real --log /home/pi/viagem.csv
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

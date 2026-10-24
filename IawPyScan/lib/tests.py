@@ -1,14 +1,17 @@
-"""Testes sem hardware: python3 tests.py"""
+"""Testes sem hardware. Na pasta IawPyScan:  python3 -m lib.tests"""
+import os
+import sys
 import threading
 import time
+import types
 
-import bmp280
-import ecu
-import gps
-from ecu import Ecu, SENSORS, build_frame, checksum_ok
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-# ---- ECU: frames reais das capturas e dos seus logs ----
-assert build_frame(0x31, 0x08).hex() == "04310800" "3d"
+from lib import gps, sensors  # noqa: E402
+from lib.ecu import Ecu, SENSORS, build_frame, checksum_ok  # noqa: E402
+
+# ---------------- ECU: frames reais das capturas e dos seus logs ----------------
+assert build_frame(0x31, 0x08).hex() == "0431080" "03d"
 assert build_frame(0x09).hex() == "0309000c"
 assert build_frame(0x51, 0x02).hex() == "0451020057"
 for h in ("04cecf01a1", "04ce2300f5", "05ce050300db", "05ce035a0130"):
@@ -63,18 +66,77 @@ assert round(got["bateria_v"], 2) == 13.0 and got["rpm"] == 875
 assert got["temp_agua"] == 61 and got["temp_ar"] == 23 and got["atm_mbar"] == 858
 assert got["map_mbar"] == 371 and got["carga_mgi"] == 78.0
 assert e.ser.acks >= len(SENSORS)
-assert Ecu(gap_s=0.01).__class__ and e.query(0x31, 0x2E) is None      # NACK
+assert e.query(0x31, 0x2E) is None  # NACK
 print("ECU ok")
 
-# ---- BMP280: exemplo numérico do datasheet Bosch (25,08 °C / 100653,27 Pa) ----
-cal = (27504, 26435, -1000, 36477, -10685, 3024, 2855, 140, -7, 15500, -14600, 6000)
-t, p = bmp280.compensate(cal, 519888, 415148)
+# ---------------- BMP280: exemplo numérico do datasheet Bosch ----------------
+CAL = (27504, 26435, -1000, 36477, -10685, 3024, 2855, 140, -7, 15500, -14600, 6000)
+t, p = sensors.compensate(CAL, 519888, 415148)
 assert abs(t - 25.08) < 0.01 and abs(p - 100653.27) < 0.5, (t, p)
-assert abs(bmp280.altitude_m(1013.25)) < 0.01 and 880 < bmp280.altitude_m(900) < 1000
+assert abs(sensors.altitude_m(1013.25)) < 0.01 and 880 < sensors.altitude_m(900) < 1000
 print("BMP280 ok", round(t, 2), "°C", round(p / 100, 2), "hPa")
 
+# ---------------- BME280: umidade, ponto de orvalho e leitura I2C simulada ----------------
+dp = sensors.dew_point_c(25.0, 60.0)
+assert abs(dp - 16.7) < 0.1, dp
+CALH = (75, 366, 0, 312, 50, 30)
+tf = sensors.t_fine_of(CAL, 519888)
+hs = [sensors.compensate_humidity(CALH, a, tf) for a in range(20000, 40000, 2000)]
+assert all(0.0 <= h <= 100.0 for h in hs) and hs == sorted(hs), hs  # limitada e crescente
 
-# ---- GPS: sentenças NMEA com checksum calculado ----
+
+class FakeBus:
+    def __init__(self, bus=1):
+        import struct
+        self.regs = {0xD0: 0x60, 0xA1: 75}
+        self.blocks = {
+            0x88: struct.pack("<HhhHhhhhhhhh", *CAL),
+            0xE1: bytes([0x6E, 0x01, 0, 0x13, 0x28, 0x03, 30]),   # H2=366 H3=0 H4=312 H5=50 H6=30
+            0xF7: bytes([0x65, 0x5A, 0xC0, 0x7E, 0xED, 0x00, 0x7D, 0x00]),
+            0x3B: bytes([0, 0, 0, 0, 0x20, 0x00]),   # ax=0, ay=0, az=+1,0 g (0x2000 / 8192)
+        }
+        self.writes = []
+
+    def read_byte_data(self, a, r): return self.regs.get(r, 0x68)
+    def write_byte_data(self, a, r, v): self.writes.append((r, v))
+    def read_i2c_block_data(self, a, r, n): return list(self.blocks[r][:n])
+
+
+fake = types.ModuleType("smbus2")
+fake.SMBus = FakeBus
+sys.modules["smbus2"] = fake
+
+bme = sensors.Bmp280()
+assert bme.init() == 0x60 and bme.calh == (75, 366, 0, 312, 50, 30), bme.calh
+assert (0xF2, 0x01) in bme.bus.writes and bme.bus.writes.index((0xF2, 0x01)) < bme.bus.writes.index((0xF4, 0x4F))
+tt, pp, rh = bme.read()
+assert 20 < tt < 40 and 700 < pp < 1100 and 0 <= rh <= 100, (tt, pp, rh)
+print("BME280 ok", round(tt, 1), "°C", round(pp, 1), "hPa", round(rh), "%")
+
+# ---------------- MPU6050: eixos e conversão ----------------
+assert sensors.map_axes((1, 2, 3), sensors.parse_axes("-y,x,z")) == (-2.0, 1.0, 3.0)
+try:
+    sensors.parse_axes("x,x,z")
+    raise AssertionError("deveria rejeitar eixo repetido")
+except ValueError:
+    pass
+imu = sensors.Mpu6050()
+imu.init()
+gx, gy, gz = imu.read_g()
+assert (gx, gy) == (0.0, 0.0) and abs(gz - 1.0) < 1e-9, (gx, gy, gz)
+print("MPU6050 ok")
+
+# ---------------- DS18B20 ----------------
+ok = "72 01 4b 46 7f ff 0e 10 57 : crc=57 YES\n72 01 4b 46 7f ff 0e 10 57 t=23125\n"
+assert sensors.parse_w1(ok) == 23.125
+assert sensors.parse_w1(ok.replace("YES", "NO")) is None
+assert sensors.parse_w1(ok.replace("t=23125", "t=85000")) is None
+ds = sensors.Ds18b20("28-aaa=temp_oleo,temp_externa")
+assert ds.key_for("28-aaa", 0) == "temp_oleo" and ds.key_for("28-bbb", 0) == "temp_externa"
+assert ds.key_for("28-ccc", 3) == "temp_ds4"
+print("DS18B20 ok")
+
+# ---------------- GPS: sentenças NMEA com checksum calculado ----------------
 def nmea(body):
     x = 0
     for ch in body:
@@ -87,7 +149,8 @@ gga = nmea("GNGGA,123519.00,2227.5000,S,04608.4000,W,1,09,1.1,1050.4,M,0.0,M,,")
 nofix = nmea("GNRMC,123519.00,V,,,,,,,230394,,,N")
 assert gps.nmea_ok(rmc) and not gps.nmea_ok(rmc.replace("021.6", "021.7"))
 d = gps.parse(rmc)
-assert abs(d["vel_kmh"] - 21.6 * 1.852) < 0.01 and abs(d["lat"] + (22 + 27.5 / 60)) < 1e-9 and abs(d["lon"] + (46 + 8.4 / 60)) < 1e-9
+assert abs(d["vel_kmh"] - 21.6 * 1.852) < 0.01
+assert abs(d["lat"] + (22 + 27.5 / 60)) < 1e-9 and abs(d["lon"] + (46 + 8.4 / 60)) < 1e-9
 g = gps.parse(gga)
 assert g["sats"] == 9 and g["hdop"] == 1.1 and g["alt_gps_m"] == 1050.4
 assert gps.parse(nofix) == {"gps_fix": False}

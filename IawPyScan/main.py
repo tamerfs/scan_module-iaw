@@ -46,6 +46,15 @@ def _fresh(key, max_age, now=None):
 
 def _derive(now):
     """Consumo instantâneo. Chamar com _lock adquirido."""
+    t_cab, rh = _fresh("temp_cabine", 10, now), _fresh("umidade_pct", 10, now)
+    if t_cab is not None and rh:
+        from lib.sensors import dew_point_c
+        dew = dew_point_c(t_cab, rh)
+        if dew is not None:
+            _state["ponto_orvalho"] = {"v": round(dew, 1), "t": now}
+            t_ext = _fresh("temp_externa", 15, now)
+            if t_ext is not None:  # vidro frio ~ temperatura de fora (pior caso)
+                _state["margem_embacar"] = {"v": round(t_ext - dew, 1), "t": now}
     inj, rpm = _fresh("inj_ms", 8, now), _fresh("rpm", 8, now)
     if inj is None or rpm is None:
         return
@@ -112,7 +121,7 @@ def _retry(name, fn, stop):
 
 
 def ecu_worker(port, stop):
-    from ecu import Ecu
+    from lib.ecu import Ecu
 
     def once():
         ecu = Ecu(port, gap_s=CFG["gap"], debug=CFG["debug"])
@@ -148,25 +157,44 @@ def ecu_simulator(stop):
 
 def gps_worker(mode, baud, stop):
     if mode == "mock":
-        from gps import MockGps
+        from lib.gps import MockGps
         MockGps().run(update, stop)
     else:
-        from gps import Gps
+        from lib.gps import Gps
         _retry("gps", lambda: Gps(mode, baud).run(update, stop), stop)
 
 
 def bmp_worker(mode, bus, addr, qnh, stop):
     if mode == "mock":
-        from bmp280 import MockBmp
+        from lib.sensors import MockBmp
         MockBmp().run(update, stop, qnh)
     else:
-        from bmp280 import Bmp280
+        from lib.sensors import Bmp280
         _retry("bmp", lambda: Bmp280(bus, addr).run(update, stop, qnh), stop)
+
+
+def imu_worker(mode, bus, addr, axes, stop):
+    if mode == "mock":
+        from lib.sensors import MockImu
+        MockImu().run(update, stop)
+    else:
+        from lib.sensors import Mpu6050
+        _retry("imu", lambda: Mpu6050(bus, addr, axes).run(update, stop), stop)
+
+
+def ds_worker(mode, names, stop):
+    if mode == "mock":
+        from lib.sensors import MockDs
+        MockDs(names).run(update, stop)
+    else:
+        from lib.sensors import Ds18b20
+        _retry("ds", lambda: Ds18b20(names).run(update, stop), stop)
 
 
 LOG_COLS = ["rpm", "vel_kmh", "temp_agua", "bateria_v", "map_mbar", "lambda_v", "inj_ms",
             "avanco_deg", "carga_mgi", "consumo_lh", "trip_km", "trip_fuel_l",
-            "temp_cabine", "pressao_hpa", "alt_baro_m", "alt_gps_m", "lat", "lon", "sats"]
+            "temp_cabine", "umidade_pct", "pressao_hpa", "alt_baro_m", "alt_gps_m", "lat", "lon", "sats",
+            "temp_externa", "temp_oleo", "acc_long_g", "acc_lat_g", "inclinacao_deg"]
 
 
 def log_worker(path, stop):
@@ -212,8 +240,10 @@ const G=[["Motor",[["rpm","Rotação","rpm",0],["temp_agua","Água","°C",0],["b
 ["avanco_deg","Avanço","°",1],["carga_mgi","Carga","mg/i",0],["temp_ar","Ar admissão","°C",0]]],
 ["Movimento e consumo",[["vel_kmh","Velocidade","km/h",0],["consumo_lh","Consumo","L/h",2],["consumo_kml","Consumo agora","km/L",1],
 ["trip_km","Viagem","km",2],["trip_fuel_l","Combustível","L",2],["trip_kml","Média da viagem","km/L",1],["trip_min","Tempo ligado","min",0]]],
-["Ambiente",[["temp_cabine","Cabine","°C",1],["pressao_hpa","Pressão (BMP280)","hPa",1],["alt_baro_m","Altitude baro.","m",0],
-["alt_gps_m","Altitude GPS","m",0],["sats","Satélites","",0]]]];
+["Ambiente",[["temp_cabine","Cabine","°C",1],["umidade_pct","Umidade cabine","%",0],["ponto_orvalho","Ponto de orvalho","°C",1],
+["margem_embacar","Margem anti-embaçar","°C",1],["temp_externa","Temperatura externa","°C",1],["temp_oleo","Óleo (cárter)","°C",0],
+["pressao_hpa","Pressão (BME/BMP)","hPa",1],["alt_baro_m","Altitude baro.","m",0],["alt_gps_m","Altitude GPS","m",0],["sats","Satélites","",0]]],
+["Dinâmica",[["acc_long_g","Aceleração","g",2],["acc_lat_g","Lateral","g",2],["inclinacao_deg","Inclinação","°",1]]]];
 const root=document.getElementById("root"),T=[];
 G.forEach(([title,items])=>{root.insertAdjacentHTML("beforeend",`<h2>${title}</h2><div class="grid">`+
 items.map(([k,n,u])=>`<div class="tile stale" id="t_${k}"><div class="n">${n}</div><div><span class="v">—</span><span class="u">${u}</span></div></div>`).join("")+`</div>`);
@@ -224,7 +254,7 @@ st.textContent=ok?"ECU conectada":"ECU offline";st.className=ok?"ok":"bad";
 T.forEach(([k,n,u,d])=>{const el=document.getElementById("t_"+k),x=s[k];if(!x)return;
 el.classList.toggle("stale",now-x.t>(k.startsWith("trip")?60:6));
 el.querySelector(".v").textContent=Number(x.v).toFixed(d);
-el.classList.toggle("hot",k=="temp_agua"&&x.v>104);el.classList.toggle("warn",k=="bateria_v"&&x.v<12);});};
+el.classList.toggle("hot",k=="temp_agua"&&x.v>104);el.classList.toggle("warn",(k=="bateria_v"&&x.v<12)||(k=="margem_embacar"&&x.v<2)||(k=="temp_oleo"&&x.v>115));});};
 es.onerror=()=>{st.textContent="sem conexão";st.className="bad"};
 </script></body></html>"""
 
@@ -269,6 +299,13 @@ def main():
     ap.add_argument("--i2c-bus", type=int, default=1)
     ap.add_argument("--bmp-addr", default="0x76", help="0x76 ou 0x77")
     ap.add_argument("--qnh", type=float, default=1013.25, help="pressão ao nível do mar p/ altitude")
+    ap.add_argument("--imu", default="off", help="off | mock | real (MPU6050)")
+    ap.add_argument("--imu-addr", default="0x68")
+    ap.add_argument("--imu-map", default="x,y,z",
+                    help="eixos da placa -> frente,esquerda,cima do carro (ex.: -y,x,z)")
+    ap.add_argument("--ds", default="off", help="off | mock | real (DS18B20)")
+    ap.add_argument("--ds-names", default="temp_externa",
+                    help="nomes na ordem dos sensores ou ID=nome (ex.: 28-abc=temp_oleo,temp_externa)")
     ap.add_argument("--http", type=int, default=8000)
     ap.add_argument("--log", default="", help="grava CSV a cada 1 s (ex.: viagem.csv)")
     ap.add_argument("--new-trip", action="store_true", help="começa com a viagem zerada")
@@ -293,12 +330,20 @@ def main():
         start(ecu_simulator, stop)
         a.gps = a.gps if a.gps != "off" else "mock"
         a.bmp = a.bmp if a.bmp != "off" else "mock"
+        a.imu = a.imu if a.imu != "off" else "mock"
+        a.ds = a.ds if a.ds != "off" else "mock"
+        if a.ds_names == "temp_externa":
+            a.ds_names = "temp_externa,temp_oleo"
     else:
         start(ecu_worker, a.port, stop)
     if a.gps != "off":
         start(gps_worker, a.gps, a.gps_baud, stop)
     if a.bmp != "off":
         start(bmp_worker, a.bmp, a.i2c_bus, int(a.bmp_addr, 0), a.qnh, stop)
+    if a.imu != "off":
+        start(imu_worker, a.imu, a.i2c_bus, int(a.imu_addr, 0), a.imu_map, stop)
+    if a.ds != "off":
+        start(ds_worker, a.ds, a.ds_names, stop)
     start(trip_worker, stop)
     if a.log:
         start(log_worker, a.log, stop)

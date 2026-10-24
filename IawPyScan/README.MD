@@ -149,3 +149,65 @@ Calibre com um tanque cheio: mantenha `--log` ligado e, a cada abastecimento, aj
 ## Próximo passo recomendado
 
 Antes de levar o projeto ao Pi, rode a ECU real no PC com `python main.py --port COM3 --debug` e confira o log. A comunicação serial real no Linux ainda não foi validada.
+
+## Preparar o Raspberry Pi (uma vez)
+
+```bash
+sudo apt update && sudo apt install -y python3-venv i2c-tools git
+cd ~/scan_module-iaw/IawPyScan
+python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
+sudo usermod -aG dialout,i2c $USER        # porta serial e I2C sem sudo (sair e entrar de novo)
+sudo raspi-config nonint do_i2c 0         # habilita I2C
+sudo raspi-config nonint do_serial_cons 1 # tira o console da serial
+sudo raspi-config nonint do_serial_hw 0   # habilita a UART de hardware
+```
+
+Em `/boot/firmware/config.txt` (em sistemas mais antigos: `/boot/config.txt`) acrescente:
+
+```
+dtoverlay=disable-bt   # libera a UART principal para o GPS (desliga o Bluetooth; o Wi-Fi continua)
+dtoverlay=w1-gpio      # DS18B20 no GPIO4
+```
+
+Reinicie e confira:
+
+```bash
+i2cdetect -y 1                       # esperado: 0x76 (BME280) e 0x68 (MPU6050)
+ls /dev/ttyUSB0 /dev/serial0         # cabo KKL e GPS
+cat /dev/serial0                     # deve aparecer texto $GNRMC... (GPS a céu aberto)
+cat /sys/bus/w1/devices/28-*/w1_slave
+python3 -m lib.tests                 # testes sem hardware
+```
+
+### Ligações (tudo em 3,3 V)
+
+| Sensor | Pinos |
+|---|---|
+| BME280 e MPU6050 | VCC 3,3 V, GND, SDA (GPIO2), SCL (GPIO3). BME280 em 0x76, MPU6050 em 0x68 |
+| NEO-M8N | VCC, GND, TX do módulo no RXD (GPIO15), RX do módulo no TXD (GPIO14) |
+| DS18B20 | vermelho 3,3 V, preto GND, amarelo no GPIO4, resistor 4,7 kΩ entre amarelo e 3,3 V |
+
+### MPU6050: eixos
+Considere X = frente do carro, Y = esquerda, Z = para cima. Se a placa ficar montada diferente, use
+`--imu-map` (ex.: `--imu-map -y,x,z`). A calibração acontece nos primeiros segundos: o carro precisa estar
+**parado**. A inclinação é relativa à posição em que o Pi foi ligado.
+
+### DS18B20: nomes
+O programa mostra os IDs ao iniciar (`[ds] 28-... -> temp_externa`). Com dois sensores, aqueça um com a mão
+e use `--ds-names 28-xxxx=temp_oleo,28-yyyy=temp_externa`.
+
+### Comando completo
+```bash
+.venv/bin/python main.py --port /dev/ttyUSB0 --gps /dev/serial0 --bmp real --imu real --ds real --log ~/viagem.csv
+```
+Teste de cada sensor isolado: troque `real` por `mock` nos que ainda não estiverem ligados.
+
+### Wi-Fi sem internet (hotspot do próprio Pi)
+```bash
+sudo nmcli device wifi hotspot ifname wlan0 ssid Strada password 'troque-esta-senha'
+```
+O celular conecta nessa rede e abre `http://10.42.0.1:8000`.
+
+### Iniciar sozinho
+Copie `strada.service` para `/etc/systemd/system/` e rode `sudo systemctl enable --now strada`.
+
