@@ -112,7 +112,7 @@ def _retry(name, fn, stop):
 
 
 def ecu_worker(port, stop):
-    from base_python_antiga.lib.ecu import Ecu
+    from ecu import Ecu
 
     def once():
         ecu = Ecu(port, gap_s=CFG["gap"], debug=CFG["debug"])
@@ -148,10 +148,10 @@ def ecu_simulator(stop):
 
 def gps_worker(mode, baud, stop):
     if mode == "mock":
-        from base_python_antiga.lib.gps import MockGps
+        from gps import MockGps
         MockGps().run(update, stop)
     else:
-        from base_python_antiga.lib.gps import Gps
+        from gps import Gps
         _retry("gps", lambda: Gps(mode, baud).run(update, stop), stop)
 
 
