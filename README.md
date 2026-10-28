@@ -93,3 +93,17 @@ Se você planeja deixar isso rodando como um módulo fixo no carro, o Raspberry 
 Comando 0x01: Solicita Identificação (ID).
 Comando 0x0B: Solicita a Tabela de Sensores (RPM, Temperatura, etc.).
 Comando 0x07: Lê erros na memória (DTCs).
+
+
+```linux
+cd ~/scan_module-iaw/IawPyScan
+python3 -m venv .venv
+.venv/bin/pip install flask pyserial smbus2
+.venv/bin/python main.py --simulate
+
+# ou rode 
+source .venv/bin/activate 
+#uma vez por sessão e use python
+python3 main.py --simulate              # ECU, GPS e BMP falsos
+python3 main.py --gps mock --bmp mock   # ECU real, GPS e BMP falsos
+```
