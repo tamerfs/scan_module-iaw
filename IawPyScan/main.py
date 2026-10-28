@@ -131,13 +131,23 @@ def trip_worker(stop):
 
 
 # ---------------- fontes ----------------
-def _retry(name, fn, stop):
+def _retry(name, fn, stop, max_wait=60):
+    """Repete fn() se ela falhar. Espera cada vez mais (3 s, 6 s... até max_wait) e só
+    escreve o erro quando a mensagem muda, para não encher o log (sensor desligado)."""
+    wait, last_msg = 3, None
     while not stop.is_set():
+        t0 = time.time()
         try:
             fn()
         except Exception as e:  # noqa: BLE001
-            print(f"[{name}] erro: {e} - tentando de novo em 3s", flush=True)
-            time.sleep(3)
+            if time.time() - t0 > 30:        # rodou bem por um tempo: recomeça o ritmo
+                wait = 3
+            msg = str(e)
+            if msg != last_msg:
+                print(f"[{name}] erro: {msg} - tentando de novo (cada vez mais espaçado)", flush=True)
+                last_msg = msg
+            stop.wait(wait)
+            wait = min(wait * 2, max_wait)
 
 
 def ecu_worker(port, stop):
@@ -156,7 +166,7 @@ def ecu_worker(port, stop):
             raise
         finally:
             ecu.close()
-    _retry("ecu", once, stop)
+    _retry("ecu", once, stop, max_wait=5)
 
 
 def ecu_simulator(stop):

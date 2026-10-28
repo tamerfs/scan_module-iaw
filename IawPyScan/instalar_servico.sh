@@ -45,6 +45,8 @@ display_unit() { cat << UNIT
 Description=Painel Strada em tela cheia (HDMI)
 After=strada.service
 Wants=strada.service
+StartLimitIntervalSec=120
+StartLimitBurst=5
 
 [Service]
 User=$USER_NAME
@@ -52,8 +54,8 @@ SupplementaryGroups=video render input
 WorkingDirectory=$DIR
 Environment=SDL_VIDEODRIVER=kmsdrm
 ExecStart=/usr/bin/python3 $DIR/display.py
-Restart=always
-RestartSec=3
+Restart=on-failure
+RestartSec=10
 
 [Install]
 WantedBy=multi-user.target
