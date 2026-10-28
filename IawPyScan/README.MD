@@ -198,7 +198,7 @@ e use `--ds-names 28-xxxx=temp_oleo,28-yyyy=temp_externa`.
 
 ### Comando completo
 ```bash
-.venv/bin/python main.py --port /dev/ttyUSB0 --gps /dev/serial0 --bmp real --imu real --ds real --oil real --tank 51 --log ~/viagem.csv
+.venv/bin/python main.py --port /dev/ttyUSB0 --gps /dev/serial0 --bmp real --imu real --ds real --log ~/viagem.csv
 ```
 Teste de cada sensor isolado: troque `real` por `mock` nos que ainda não estiverem ligados.
 
@@ -209,77 +209,42 @@ sudo nmcli device wifi hotspot ifname wlan0 ssid Strada password 'troque-esta-se
 O celular conecta nessa rede e abre `http://10.42.0.1:8000`.
 
 ### Iniciar sozinho
-Na pasta `IawPyScan`, depois de criar o `.venv`:
-```bash
-./instalar_servico.sh
-```
-O script descobre seu usuário e a pasta sozinho (não precisa editar nada) e instala o serviço `strada`.
-Por padrão ele usa os sensores já ligados; pra incluir o óleo: `./instalar_servico.sh --args "--port /dev/ttyUSB0 --gps /dev/serial0 --bmp real --imu real --ds real --oil real --tank 51 --log ~/viagem.csv"`.
-Logs: `journalctl -u strada -f`. Reiniciar: `sudo systemctl restart strada`.
+Copie `strada.service` para `/etc/systemd/system/` e rode `sudo systemctl enable --now strada`.
 
-## Tela cheia no HDMI (sem navegador)
 
-O Pi Zero W (ARMv6, sem NEON) **não roda Chromium nem Firefox**, e nenhum navegador moderno. Em vez de insistir,
-o `display.py` desenha o painel direto na tela com pygame (sem navegador, bem mais leve) lendo o mesmo servidor.
-O celular continua usando a página web normalmente.
+## Iniciar sozinho
 
-```bash
-sudo apt install -y python3-pygame       # usar o python3 do sistema, não o .venv
-python3 display.py --windowed            # teste em janela (com o main.py rodando)
+### adicionando o serviço no systemd
+
+Copie `strada.service` para `/etc/systemd/system/` e rode `sudo systemctl enable --now strada`.
+
+```linux
+sudo cp strada.service /etc/systemd/system/ 
+sudo systemctl daemon-reload
+sudo systemctl enable --now strada
 ```
 
-**Tela cheia fixa, ao ligar (modo console, recomendado: libera ~100 MB de RAM do desktop):**
-```bash
-./instalar_servico.sh --display
-sudo systemctl set-default multi-user.target     # boot sem desktop
+Ajuste User e os caminhos se o usuário/pasta forem outros.
+
+```linux
+# Para conferir o estado e ver os logs:
+systemctl status scan-module-iaw.service
+journalctl -u scan-module-iaw.service -f
+
+# Se o programa precisar acessar a porta serial USB, adicione o usuário ao grupo dialout e reinicie o Raspberry Pi:
+sudo usermod -aG dialout taer
 sudo reboot
 ```
-Se a tela ficar preta, teste à mão (com o desktop parado): `SDL_VIDEODRIVER=kmsdrm python3 display.py`.
-Para voltar ao desktop: `sudo systemctl set-default graphical.target`.
 
-**Se preferir manter o desktop:** inicie o `display.py` na sessão gráfica (autostart) sem definir `SDL_VIDEODRIVER`:
-`python3 /home/SEU_USUARIO/scan_module-iaw/IawPyScan/display.py`. Descubra o tipo de sessão com `echo $XDG_SESSION_TYPE`.
+```linux
+cd ~/scan_module-iaw/IawPyScan
+python3 -m venv .venv
+.venv/bin/pip install flask pyserial smbus2
+.venv/bin/python main.py --simulate
 
-Sair da tela cheia: tecla `Esc` ou `Q`. Quer ver um navegador de verdade no HDMI? Troque o Pi Zero W pelo
-**Pi Zero 2 W** (mesmo tamanho, CPU de 64 bits com NEON); aí Chromium e até .NET passam a rodar.
-
-## Combustível: no tanque, autonomia e calibração
-
-Na tela, **Abasteci** e **Ajustar nível**. O programa estima o gasto pela injeção e desconta do tanque.
-
-- **Abasteci + "tanque cheio"** (encheu até a bomba desarmar): o tanque passa a valer a capacidade. Se o
-  abastecimento anterior também foi cheio, os litros colocados são o gasto real desde então e o fator `k`
-  é recalibrado sozinho (exige pelo menos 10 L estimados no intervalo). Quanto mais longo o intervalo, melhor.
-- **Abasteci + parcial**: soma os litros ao que o programa acha que tem. Não calibra.
-- **Ajustar nível**: você diz quantos litros acha que tem (use se esqueceu de registrar um abastecimento).
-- **Autonomia** = litros no tanque x média km/L desde o último abastecimento (aparece depois de 5 km).
-- Alerta de reserva abaixo de `--reserve` litros (padrão 6). Capacidade: `--tank 51` (padrão 50; confira a do seu carro).
-- Tudo fica salvo em `fuel.json` e sobrevive a desligar o Pi.
-
-Dica: pra calibrar bem, encha sempre até a bomba desarmar, do mesmo jeito, no mesmo posto/bomba.
-
-## Pressão do óleo (sensor 0,5-4,5 V + ADS1115)
-
-**Este é o único item que mexe no circuito de óleo do motor.** Se não tiver segurança, peça a um mecânico
-para montar o adaptador. Um vazamento de óleo derruba a pressão e pode fundir o motor.
-
-- **Onde ligar:** em um adaptador em T no furo do interruptor de pressão original (o da luz do painel). A luz continua
-  funcionando e o sensor novo vai no outro braço do T. Confirme a rosca do seu motor antes de comprar o adaptador.
-- **Sensor:** transdutor automotivo 0-10 bar, saída 0,5-4,5 V, alimentação 5 V, rosca compatível com o T.
-  Instale longe do coletor de escape e com o conector voltado para baixo (evita acúmulo de água).
-- **Nunca** leve mangueira de óleo para dentro da cabine.
-- **Circuito** (ADS1115 alimentado em **3,3 V**; o Pi só aguenta 3,3 V):
-
+# ou rode 
+source .venv/bin/activate 
+#uma vez por sessão e use python
+python3 main.py --simulate              # ECU, GPS e BMP falsos
+python3 main.py --gps mock --bmp mock   # ECU real, GPS e BMP falsos
 ```
-sinal do sensor --[10k]--+--[20k]-- GND      -> ADS1115 A0
-+5 V do sensor  --[10k]--+--[20k]-- GND      -> ADS1115 A1   (mesmo divisor)
-ADS1115: VDD 3,3 V, GND, SDA (GPIO2), SCL (GPIO3), ADDR em GND (0x48)
-```
-
-O programa usa A0/A1 (ratiométrico), então variações da fonte de 5 V não alteram a pressão. GND do sensor,
-do conversor 12->5 V e do Pi devem ser o mesmo.
-
-- **Rodar:** `--oil real` (use `--oil-range 10` conforme o sensor; testar sem hardware: `--oil mock`).
-- **Alerta:** o valor fica vermelho se a pressão cair abaixo de 0,5 bar com o motor acima de 600 rpm. Esse limite é
-  provisório: registre algumas semanas (`--log`) para ver o que é normal no seu motor, quente e frio, e ajuste.
-

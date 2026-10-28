@@ -13,9 +13,7 @@ import random
 import threading
 import time
 
-from flask import Flask, Response, jsonify, request
-
-from lib.fuel import FuelLedger
+from flask import Flask, Response, jsonify
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 TRIP_FILE = os.path.join(HERE, "trip.json")
@@ -25,7 +23,6 @@ _state = {}
 _lock = threading.RLock()
 CFG = {}
 trip = {"dist_m": 0.0, "fuel_l": 0.0, "secs": 0.0}
-FUEL = None  # livro-caixa do combustível, criado em main()
 
 
 def update(values):
@@ -63,7 +60,7 @@ def _derive(now):
         return
     eff = max(inj - CFG["dead_ms"], 0) / 1000.0                    # s por pulso
     cc_s = eff * (CFG["flow_cc_min"] / 60.0) * CFG["cyl"] * rpm / 120.0
-    lph = cc_s * 3.6 * (FUEL.k if FUEL else 1.0)                                     # L/h
+    lph = cc_s * 3.6 * CFG["k"]                                     # L/h
     _state["consumo_lh"] = {"v": round(lph, 2), "t": now}
     speed = _fresh("vel_kmh", 3, now)
     if speed is not None and speed > 3 and lph > 0.05:
@@ -87,17 +84,6 @@ def save_trip():
         pass
 
 
-def fuel_keys():
-    """Estado do combustível com os nomes usados no painel."""
-    st = FUEL.status()
-    names = {"remaining_l": "comb_l", "autonomia_km": "autonomia_km", "since_km": "abast_km",
-             "since_kml": "abast_kml", "k": "fator_k"}
-    out = {names[k]: v for k, v in st.items() if k in names}
-    if "reserva" in st:
-        out["comb_reserva"] = 1 if st["reserva"] else 0
-    return out
-
-
 def trip_worker(stop):
     last = last_save = time.time()
     while not stop.is_set():
@@ -108,46 +94,30 @@ def trip_worker(stop):
             spd = _fresh("vel_kmh", 3, now)
             lph = _fresh("consumo_lh", 8, now)
             rpm = _fresh("rpm", 8, now)
-            d_km = d_l = 0.0
             if spd is not None and spd > 1.5:
-                d_km = spd / 3.6 * dt / 1000.0          # integra a velocidade do GPS
-                trip["dist_m"] += d_km * 1000.0
+                trip["dist_m"] += spd / 3.6 * dt        # integra a velocidade do GPS
             if lph is not None and rpm and rpm > 300:   # motor ligado
-                d_l = lph * dt / 3600.0
-                trip["fuel_l"] += d_l
+                trip["fuel_l"] += lph * dt / 3600.0
                 trip["secs"] += dt
-            FUEL.add(d_km, d_l)
             km, fuel = trip["dist_m"] / 1000.0, trip["fuel_l"]
             out = {"trip_km": round(km, 2), "trip_fuel_l": round(fuel, 2),
                    "trip_min": round(trip["secs"] / 60.0, 1)}
             if km > 0.2 and fuel > 0.02:
                 out["trip_kml"] = round(km / fuel, 1)
-        out.update(fuel_keys())
         update(out)
         if now - last_save > 10:
             last_save = now
             save_trip()
-            FUEL.save()
 
 
 # ---------------- fontes ----------------
-def _retry(name, fn, stop, max_wait=60):
-    """Repete fn() se ela falhar. Espera cada vez mais (3 s, 6 s... até max_wait) e só
-    escreve o erro quando a mensagem muda, para não encher o log (sensor desligado)."""
-    wait, last_msg = 3, None
+def _retry(name, fn, stop):
     while not stop.is_set():
-        t0 = time.time()
         try:
             fn()
         except Exception as e:  # noqa: BLE001
-            if time.time() - t0 > 30:        # rodou bem por um tempo: recomeça o ritmo
-                wait = 3
-            msg = str(e)
-            if msg != last_msg:
-                print(f"[{name}] erro: {msg} - tentando de novo (cada vez mais espaçado)", flush=True)
-                last_msg = msg
-            stop.wait(wait)
-            wait = min(wait * 2, max_wait)
+            print(f"[{name}] erro: {e} - tentando de novo em 3s", flush=True)
+            time.sleep(3)
 
 
 def ecu_worker(port, stop):
@@ -166,7 +136,7 @@ def ecu_worker(port, stop):
             raise
         finally:
             ecu.close()
-    _retry("ecu", once, stop, max_wait=5)
+    _retry("ecu", once, stop)
 
 
 def ecu_simulator(stop):
@@ -221,20 +191,10 @@ def ds_worker(mode, names, stop):
         _retry("ds", lambda: Ds18b20(names).run(update, stop), stop)
 
 
-def oil_worker(mode, bus, addr, range_bar, stop):
-    if mode == "mock":
-        from lib.sensors import MockOil
-        MockOil().run(update, stop)
-    else:
-        from lib.sensors import OilPressure
-        _retry("oleo", lambda: OilPressure(bus, addr, range_bar).run(update, stop), stop)
-
-
 LOG_COLS = ["rpm", "vel_kmh", "temp_agua", "bateria_v", "map_mbar", "lambda_v", "inj_ms",
             "avanco_deg", "carga_mgi", "consumo_lh", "trip_km", "trip_fuel_l",
             "temp_cabine", "umidade_pct", "pressao_hpa", "alt_baro_m", "alt_gps_m", "lat", "lon", "sats",
-            "temp_externa", "temp_oleo", "oleo_bar", "acc_long_g", "acc_lat_g", "inclinacao_deg",
-            "comb_l", "autonomia_km"]
+            "temp_externa", "temp_oleo", "acc_long_g", "acc_lat_g", "inclinacao_deg"]
 
 
 def log_worker(path, stop):
@@ -266,23 +226,18 @@ body{margin:0;background:#0b0f14;color:#e8eef5;font-family:system-ui,sans-serif}
 header{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:#121923}
 #st{font-weight:600}.ok{color:#4ade80}.bad{color:#f87171}
 button{background:#243244;color:#e8eef5;border:0;border-radius:8px;padding:8px 12px}
-.bar{display:flex;flex-wrap:wrap;gap:8px;padding:8px 14px;background:#121923}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;padding:12px}
 .tile{background:#121923;border-radius:12px;padding:12px}
 .tile .n{font-size:.8rem;color:#8fa3b8}.tile .v{font-size:2rem;font-weight:700}
 .tile .u{font-size:.9rem;color:#8fa3b8;margin-left:4px}.stale .v{color:#556}
 .warn .v{color:#fbbf24}.hot .v{color:#f87171}h2{margin:6px 14px 0;font-size:.9rem;color:#8fa3b8}
 </style></head><body>
-<header><div>Strada</div><div id="st" class="bad">sem dados</div></header>
-<div class="bar"><button onclick="fill()">Abasteci</button>
-<button onclick="setFuel()">Ajustar nível</button>
-<button onclick="if(confirm('Zerar a viagem?'))fetch('/api/reset_trip',{method:'POST'})">Zerar viagem</button></div>
+<header><div>Strada</div><div id="st" class="bad">sem dados</div>
+<button onclick="if(confirm('Zerar a viagem?'))fetch('/api/reset_trip',{method:'POST'})">Zerar viagem</button></header>
 <div id="root"></div><script>
 const G=[["Motor",[["rpm","Rotação","rpm",0],["temp_agua","Água","°C",0],["bateria_v","Bateria","V",2],
-["oleo_bar","Pressão do óleo","bar",1],["map_mbar","Pressão admissão","mbar",0],["lambda_v","Sonda lambda","V",2],["inj_ms","Injeção","ms",2],
+["map_mbar","Pressão admissão","mbar",0],["lambda_v","Sonda lambda","V",2],["inj_ms","Injeção","ms",2],
 ["avanco_deg","Avanço","°",1],["carga_mgi","Carga","mg/i",0],["temp_ar","Ar admissão","°C",0]]],
-["Combustível",[["comb_l","No tanque","L",1],["autonomia_km","Autonomia","km",0],["abast_km","Desde o abastecimento","km",0],
-["abast_kml","Média desde abastec.","km/L",1],["fator_k","Calibração (k)","",3]]],
 ["Movimento e consumo",[["vel_kmh","Velocidade","km/h",0],["consumo_lh","Consumo","L/h",2],["consumo_kml","Consumo agora","km/L",1],
 ["trip_km","Viagem","km",2],["trip_fuel_l","Combustível","L",2],["trip_kml","Média da viagem","km/L",1],["trip_min","Tempo ligado","min",0]]],
 ["Ambiente",[["temp_cabine","Cabine","°C",1],["umidade_pct","Umidade cabine","%",0],["ponto_orvalho","Ponto de orvalho","°C",1],
@@ -297,13 +252,9 @@ const es=new EventSource("/stream"),st=document.getElementById("st");
 es.onmessage=e=>{const s=JSON.parse(e.data),now=Date.now()/1000,ok=s.ecu_ok&&s.ecu_ok.v;
 st.textContent=ok?"ECU conectada":"ECU offline";st.className=ok?"ok":"bad";
 T.forEach(([k,n,u,d])=>{const el=document.getElementById("t_"+k),x=s[k];if(!x)return;
-el.classList.toggle("stale",now-x.t>((k.startsWith("trip")||k.startsWith("comb")||k.startsWith("abast")||k=="autonomia_km"||k=="fator_k")?60:6));
+el.classList.toggle("stale",now-x.t>(k.startsWith("trip")?60:6));
 el.querySelector(".v").textContent=Number(x.v).toFixed(d);
-el.classList.toggle("hot",k=="temp_agua"&&x.v>104);el.classList.toggle("warn",(k=="bateria_v"&&x.v<12)||(k=="margem_embacar"&&x.v<2)||(k=="temp_oleo"&&x.v>115)||(k=="comb_l"&&s.comb_reserva&&s.comb_reserva.v==1)||(k=="oleo_bar"&&x.v<0.5&&s.rpm&&s.rpm.v>600));});};
-const post=(u,b)=>fetch(u,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(b)}).then(r=>r.json()).then(j=>alert(j.msg||(j.ok?"ok":"erro")));
-function fill(){const l=prompt("Quantos litros colocou?");if(!l)return;
-const full=confirm("Encheu até a bomba desarmar?\nOK = tanque cheio (calibra o consumo)\nCancelar = abastecimento parcial");post("/api/fill",{liters:l,full});}
-function setFuel(){const l=prompt("Quantos litros tem no tanque agora?");if(!l)return;post("/api/set_fuel",{liters:l});}
+el.classList.toggle("hot",k=="temp_agua"&&x.v>104);el.classList.toggle("warn",(k=="bateria_v"&&x.v<12)||(k=="margem_embacar"&&x.v<2)||(k=="temp_oleo"&&x.v>115));});};
 es.onerror=()=>{st.textContent="sem conexão";st.className="bad"};
 </script></body></html>"""
 
@@ -326,37 +277,6 @@ def reset_trip():
             _state.pop(k, None)
     save_trip()
     return jsonify(ok=True)
-
-
-def _num(v):
-    try:
-        return float(str(v).replace(",", "."))
-    except ValueError:
-        return None
-
-
-@app.route("/api/fill", methods=["POST"])
-def api_fill():
-    data = request.get_json(silent=True) or {}
-    liters = _num(data.get("liters"))
-    if liters is None:
-        return jsonify(ok=False, msg="litros inválidos"), 400
-    ok, msg = FUEL.fill(liters, bool(data.get("full")))
-    if ok:
-        update(fuel_keys())
-    return jsonify(ok=ok, msg=msg), (200 if ok else 400)
-
-
-@app.route("/api/set_fuel", methods=["POST"])
-def api_set_fuel():
-    data = request.get_json(silent=True) or {}
-    liters = _num(data.get("liters"))
-    if liters is None:
-        return jsonify(ok=False, msg="litros inválidos"), 400
-    ok, msg = FUEL.set_remaining(liters)
-    if ok:
-        update(fuel_keys())
-    return jsonify(ok=ok, msg=msg), (200 if ok else 400)
 
 
 @app.route("/stream")
@@ -395,18 +315,9 @@ def main():
     ap.add_argument("--flow", type=float, default=150.0, help="vazão do bico, cc/min (conferir!)")
     ap.add_argument("--dead", type=float, default=0.8, help="tempo morto do bico, ms")
     ap.add_argument("--cyl", type=int, default=4)
-    ap.add_argument("--k", type=float, default=None,
-                    help="fator de calibração do consumo (normalmente automático, pelos abastecimentos cheios)")
-    ap.add_argument("--tank", type=float, default=None, help="capacidade do tanque em litros (padrão 50)")
-    ap.add_argument("--reserve", type=float, default=None, help="alerta de reserva em litros (padrão 6)")
-    ap.add_argument("--fuel-file", default=os.path.join(HERE, "fuel.json"))
-    ap.add_argument("--oil", default="off", help="off | mock | real (sensor de pressão + ADS1115)")
-    ap.add_argument("--oil-addr", default="0x48")
-    ap.add_argument("--oil-range", type=float, default=10.0, help="fundo de escala do sensor, bar")
+    ap.add_argument("--k", type=float, default=1.0, help="fator de calibração do consumo")
     a = ap.parse_args()
-    CFG.update(flow_cc_min=a.flow, dead_ms=a.dead, cyl=a.cyl, gap=a.gap, debug=a.debug)
-    global FUEL
-    FUEL = FuelLedger(a.fuel_file, capacity_l=a.tank, reserve_l=a.reserve, k=a.k)
+    CFG.update(flow_cc_min=a.flow, dead_ms=a.dead, cyl=a.cyl, k=a.k, gap=a.gap, debug=a.debug)
 
     if not a.new_trip:
         load_trip()
@@ -421,7 +332,6 @@ def main():
         a.bmp = a.bmp if a.bmp != "off" else "mock"
         a.imu = a.imu if a.imu != "off" else "mock"
         a.ds = a.ds if a.ds != "off" else "mock"
-        a.oil = a.oil if a.oil != "off" else "mock"
         if a.ds_names == "temp_externa":
             a.ds_names = "temp_externa,temp_oleo"
     else:
@@ -434,8 +344,6 @@ def main():
         start(imu_worker, a.imu, a.i2c_bus, int(a.imu_addr, 0), a.imu_map, stop)
     if a.ds != "off":
         start(ds_worker, a.ds, a.ds_names, stop)
-    if a.oil != "off":
-        start(oil_worker, a.oil, a.i2c_bus, int(a.oil_addr, 0), a.oil_range, stop)
     start(trip_worker, stop)
     if a.log:
         start(log_worker, a.log, stop)
