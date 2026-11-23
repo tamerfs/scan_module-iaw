@@ -3,7 +3,7 @@ Description=Painel MOnitoramento shell terminal da Strada
 After=strada.service
 
 [Service]
-User=pi
+User=taer
 WorkingDirectory=/home/pi/scan_module-iaw/IawPyScan
 ExecStart=/home/pi/scan_module-iaw/IawPyScan/.venv/bin/python strada_tui.py
 Restart=always
